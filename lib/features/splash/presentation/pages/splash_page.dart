@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 
 class SplashPage extends StatefulWidget {
@@ -91,9 +91,13 @@ class _SplashPageState extends State<SplashPage>
 
   Future<void> _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
     _logoController.forward();
+
     await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
     _textController.forward();
+
     await Future.delayed(const Duration(milliseconds: 2200));
     if (mounted) widget.onFinished();
   }
@@ -198,7 +202,7 @@ class _SplashPageState extends State<SplashPage>
                           position: _textSlide,
                           child: Text(
                             'lumo',
-                            style: GoogleFonts.nunito(
+                            style: AppText.nunito(
                               fontSize: 56,
                               fontWeight: FontWeight.w900,
                               color: Colors.white,
@@ -227,7 +231,7 @@ class _SplashPageState extends State<SplashPage>
                     position: _taglineSlide,
                     child: Text(
                       'Small steps, big happiness.',
-                      style: GoogleFonts.nunito(
+                      style: AppText.nunito(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: Colors.white70,

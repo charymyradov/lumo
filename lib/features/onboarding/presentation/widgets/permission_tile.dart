@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 
 class PermissionTile extends StatelessWidget {
@@ -50,7 +50,7 @@ class PermissionTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
@@ -59,7 +59,7 @@ class PermissionTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     color: AppColors.textSecondary,

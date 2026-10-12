@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 
 class LumoContinueButton extends StatefulWidget {
@@ -68,7 +68,7 @@ class _LumoContinueButtonState extends State<LumoContinueButton>
           child: Center(
             child: Text(
               widget.label,
-              style: GoogleFonts.nunito(
+              style: AppText.nunito(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,

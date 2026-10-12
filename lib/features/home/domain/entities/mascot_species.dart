@@ -12,8 +12,8 @@ enum MascotSpecies {
     titleEn: 'Fox',
     traitsTr: 'Meraklı • Enerjik • Sevecen',
     traitsEn: 'Curious • Energetic • Loving',
-    primaryEarColor: Color(0xFFA78BFA),
-    secondaryFurColor: Color(0xFFEDE9FE),
+    primaryEarColor: Color(0xFF8B5CF6),
+    secondaryFurColor: Color(0xFFFDFBFF),
   ),
   cat(
     id: 'cat',

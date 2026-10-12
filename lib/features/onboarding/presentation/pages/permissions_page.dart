@@ -2,9 +2,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/router/main_shell.dart';
+import 'package:lumo/core/services/app_prefs.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_event.dart';
 import 'package:lumo/features/onboarding/presentation/widgets/onboarding_background.dart';
@@ -96,7 +97,7 @@ class _PermissionsPageState extends State<PermissionsPage>
                               children: [
                                 Text(
                                   "İzinlere izin ver",
-                                  style: GoogleFonts.nunito(
+                                  style: AppText.nunito(
                                     fontSize: 26,
                                     fontWeight: FontWeight.w900,
                                     color: AppColors.textPrimary,
@@ -119,7 +120,7 @@ class _PermissionsPageState extends State<PermissionsPage>
                                 const SizedBox(height: 16),
                                 Text(
                                   "We keep your data safe.",
-                                  style: GoogleFonts.nunito(
+                                  style: AppText.nunito(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
                                     color: AppColors.textHint,
@@ -133,12 +134,17 @@ class _PermissionsPageState extends State<PermissionsPage>
                       const SizedBox(height: 32),
                       LumoContinueButton(
                         label: 'Devam Et',
-                        onTap: () {
+                        onTap: () async {
                           // Complete onboarding logic
                           context
                               .read<OnboardingBloc>()
                               .add(const OnboardingCompleted());
 
+                          // Bir kez tamamlanınca kalıcı işaretle:
+                          // sonraki açılışlarda home'dan başlar.
+                          await AppPrefs.setOnboardingCompleted();
+
+                          if (!context.mounted) return;
                           // Enter the main app shell (bottom nav + tabs)
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(

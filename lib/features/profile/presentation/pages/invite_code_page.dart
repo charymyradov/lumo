@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 import 'package:lumo/shared/widgets/glass_card.dart';
@@ -51,7 +51,7 @@ class InviteCodePage extends StatelessWidget {
                     children: [
                       Text(
                         'Davet Kodu',
-                        style: GoogleFonts.nunito(
+                        style: AppText.nunito(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                           color: AppColors.textPrimary,
@@ -61,7 +61,7 @@ class InviteCodePage extends StatelessWidget {
                       Text(
                         'Arkadaşlarını davet et, birlikte coin kazan.',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.nunito(
+                        style: AppText.nunito(
                           fontSize: 14,
                           color: AppColors.textSecondary,
                         ),
@@ -77,7 +77,7 @@ class InviteCodePage extends StatelessWidget {
                         ),
                         child: Text(
                           'LUMO-ELIF-12',
-                          style: GoogleFonts.nunito(
+                          style: AppText.nunito(
                             fontSize: 20,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.5,

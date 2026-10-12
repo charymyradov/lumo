@@ -15,6 +15,9 @@ dependencies:
   flutter_bloc: ^9.1.1
   equatable: ^3.0.0
   lottie: ^3.6.1
+  rive: ^0.14.11
+  shared_preferences: ^2.5.6
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -28,8 +31,8 @@ flutter:
     - assets/lumo_images/
     - assets/lumo_json/
     - assets/pets/
-    - assets/images/
-    - assets/animations/
     - assets/icons/
-    - assets/fonts/
+    - assets/navbar/
     - assets/sounds/
+    - assets/rive/
+    - assets/fonts/

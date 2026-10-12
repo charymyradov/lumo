@@ -38,7 +38,7 @@ class _DraggablePetState extends State<DraggablePet>
     with TickerProviderStateMixin {
   late Offset _position;
   bool _isReacting = false;
-  bool _facingRight = true;
+  final bool _facingRight = true;
   _PetMood _petMood = _PetMood.idle;
 
   // For idle floating animation

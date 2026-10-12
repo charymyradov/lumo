@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 
 /// Görseldeki üst hap filtre: [Tümü] [Sistem] [Sosyal] [Ödül]
 class NotificationFilterTabs extends StatelessWidget {
@@ -67,7 +67,7 @@ class NotificationFilterTabs extends StatelessWidget {
                 ),
                 child: Text(
                   labels[i],
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 13.5,
                     fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                     color: selected

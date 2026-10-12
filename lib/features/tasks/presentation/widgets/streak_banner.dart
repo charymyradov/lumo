@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/shared/widgets/coin_badge.dart';
 import 'package:lumo/shared/widgets/glass_card.dart';
@@ -49,7 +49,7 @@ class StreakBanner extends StatelessWidget {
                   children: [
                     Text(
                       '$days günlük seri!',
-                      style: GoogleFonts.nunito(
+                      style: AppText.nunito(
                         fontSize: 17.5,
                         fontWeight: FontWeight.w900,
                         color: AppColors.textPrimary,
@@ -58,7 +58,7 @@ class StreakBanner extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       'Harika gidiyorsun!',
-                      style: GoogleFonts.nunito(
+                      style: AppText.nunito(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textSecondary.withValues(alpha: 0.9),

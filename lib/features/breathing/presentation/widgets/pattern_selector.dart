@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 
 /// Görseldeki desen sırası: [4-7-8] [Kutu Nefes] [Derin Nefes]
 /// Tam genişliğe yayılır, seçili olan daha opak mor.
@@ -45,7 +45,7 @@ class PatternSelector extends StatelessWidget {
                   labels[i],
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 13.5,
                     fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                     color: Colors.white,

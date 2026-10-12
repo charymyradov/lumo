@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 
 /// iOS-style segmented control on a frosted glass track.
@@ -65,7 +65,7 @@ class SegmentedTabs extends StatelessWidget {
                     ),
                     child: Text(
                       labels[index],
-                      style: GoogleFonts.nunito(
+                      style: AppText.nunito(
                         fontSize: 16,
                         fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                         color: selected

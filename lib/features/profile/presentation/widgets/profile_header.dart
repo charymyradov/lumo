@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 
 /// Üst avatar + isim + seviye + XP bar — görseldeki Profil başlığı.
 class ProfileHeader extends StatelessWidget {
@@ -66,7 +66,7 @@ class ProfileHeader extends StatelessWidget {
         const SizedBox(height: 10),
         Text(
           name,
-          style: GoogleFonts.nunito(
+          style: AppText.nunito(
             fontSize: 22,
             fontWeight: FontWeight.w900,
             color: Colors.white,
@@ -80,7 +80,7 @@ class ProfileHeader extends StatelessWidget {
         ),
         Text(
           'Seviye $level',
-          style: GoogleFonts.nunito(
+          style: AppText.nunito(
             fontSize: 15,
             fontWeight: FontWeight.w700,
             color: Colors.white.withValues(alpha: 0.95),
@@ -121,7 +121,7 @@ class ProfileHeader extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               progressText,
-              style: GoogleFonts.nunito(
+              style: AppText.nunito(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,

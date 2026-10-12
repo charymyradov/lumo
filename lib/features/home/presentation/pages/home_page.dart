@@ -1,16 +1,21 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
+import 'package:lumo/core/services/audio_service.dart';
+import 'package:lumo/core/services/haptic_service.dart';
 import 'package:lumo/features/breathing/presentation/pages/breathing_page.dart';
 import 'package:lumo/features/home/domain/entities/cosmetic_item.dart';
 import 'package:lumo/features/home/domain/entities/mascot_species.dart';
 import 'package:lumo/features/home/domain/entities/pet_action_state.dart';
 import 'package:lumo/features/home/presentation/pet/lumo_interactive_pet_stage.dart';
+import 'package:lumo/features/home/presentation/pet/rive_pet_stage.dart';
+import 'package:lumo/features/home/presentation/widgets/falling_leaves.dart';
 import 'package:lumo/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:lumo/shared/widgets/coin_badge.dart';
 import 'package:lumo/shared/widgets/glass_card.dart';
+import 'package:lumo/shared/widgets/animated_background.dart';
 
 enum _PetLifecycleState {
   idle,
@@ -42,6 +47,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   /// Mascot species drawn by the interactive pet stage.
   static const MascotSpecies _species = MascotSpecies.fox;
 
+  /// Adım 2: `lumo.riv` hazır olunca true yap — Rive sahneye geçer,
+  /// dosya yoksa otomatik vektör sahneye düşer.
+  static const bool _useRive = false;
+
   /// Wardrobe / furniture rendered on the stage (cloud bed, lantern, crown…).
   final List<CosmeticItem> _equippedItems = defaultCosmeticItems;
 
@@ -64,16 +73,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String _statusBubbleText = "Seninle vakit geçirmek çok güzel! 💜";
   bool _isNightMode = false;
 
-  // ── Float animation (subtle up-down when idle) ─────────────────────
-  late final AnimationController _floatController;
-
   @override
   void initState() {
     super.initState();
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2800),
-    )..repeat();
     _updateEnvironmentMode();
     _startVitalPulse();
     _scheduleIdleWander();
@@ -84,12 +86,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _idleWanderTimer?.cancel();
     _petActionTimer?.cancel();
     _vitalPulseTimer?.cancel();
-    _floatController.dispose();
     super.dispose();
   }
 
   void _updatePetMood() {
-    if (_energy < 0.2) {
+    if (_energy < 0.12) {
       _petMood = _PetMood.sleepy;
       return;
     }
@@ -125,16 +126,35 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _vitalPulseTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (!mounted) return;
 
+      final isSleeping =
+          _petLifecycle == _PetLifecycleState.resting && _petAction == PetActionState.sleep;
+
       setState(() {
-        _hunger = (_hunger + 0.04).clamp(0.0, 1.0);
-        _hydration = (_hydration - 0.03).clamp(0.0, 1.0);
-        _energy = (_energy - 0.03).clamp(0.0, 1.0);
-        _happiness = (_happiness - 0.02).clamp(0.0, 1.0);
+        if (isSleeping) {
+          // Uyurken enerji dolar, diğer ihtiyaçlar daha yavaş değişir.
+          _energy = (_energy + 0.15).clamp(0.0, 1.0);
+          _hunger = (_hunger + 0.02).clamp(0.0, 1.0);
+          _hydration = (_hydration - 0.015).clamp(0.0, 1.0);
+          _happiness = (_happiness - 0.01).clamp(0.0, 1.0);
+        } else {
+          _hunger = (_hunger + 0.04).clamp(0.0, 1.0);
+          _hydration = (_hydration - 0.03).clamp(0.0, 1.0);
+          _energy = (_energy - 0.015).clamp(0.0, 1.0);
+          _happiness = (_happiness - 0.02).clamp(0.0, 1.0);
+        }
       });
 
       _updatePetMood();
 
-      if (_petLifecycle == _PetLifecycleState.resting && _petAction == PetActionState.sleep) {
+      if (isSleeping) {
+        // Enerji dolunca otomatik uyan — sonsuz uykuyu engeller.
+        if (_energy >= 0.75) {
+          setState(() {
+            _petAction = PetActionState.idle;
+            _petLifecycle = _PetLifecycleState.idle;
+            _statusBubbleText = "Oh, dinlendim! Oynamaya hazırım! ✨";
+          });
+        }
         return;
       }
 
@@ -181,7 +201,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   PetActionState _resolvePriorityAction() {
-    if (_energy < 0.18 || _petMood == _PetMood.sleepy) {
+    if (_energy < 0.10 || _petMood == _PetMood.sleepy) {
       return PetActionState.sleep;
     }
     if (_hunger > 0.82 || _petMood == _PetMood.hungry) {
@@ -239,7 +259,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   PetActionState? _pendingCareAction() {
     final priority = _resolvePriorityAction();
     if (priority != PetActionState.idle) return priority;
-    if (_energy < 0.25) return PetActionState.sleep;
+    if (_energy < 0.15) return PetActionState.sleep;
     if (_hunger > 0.75) return PetActionState.eat;
     if (_hydration < 0.35) return PetActionState.drink;
     if (_happiness < 0.35) return PetActionState.groom;
@@ -293,6 +313,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   // ── Pet interactions ───────────────────────────────────────────────
   void _performPetAction(PetActionState petAction) {
+    // His: her dokunuşta tepki (rehber §8).
+    HapticService.petTap();
+    switch (petAction) {
+      case PetActionState.petted || PetActionState.groom:
+        PetSoundService.playPurr();
+      case PetActionState.playBall || PetActionState.dance || PetActionState.jump:
+        PetSoundService.playGiggle();
+      case PetActionState.sleep:
+        PetSoundService.playSleep();
+      case PetActionState.eat || PetActionState.drink || PetActionState.run || PetActionState.walk || PetActionState.idle:
+        PetSoundService.playPop();
+    }
 
     setState(() {
       switch (petAction) {
@@ -386,11 +418,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── 1. Full-screen Background ─────────────────────────────
-          Image.asset(
-            environmentBackground,
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
+          // ── 1. Full-screen Background (net: blur kapalı) ──
+          // Rehber §5 + §9: arka plan ayrıntılı boyama, karakter düz vektör.
+          BlurredMeadowBackground(
+            imagePath: environmentBackground,
+            blurSigma: 0,
+            paleOpacity: 0,
           ),
 
           // ── 2. Sky ambience and environment props ────────────────
@@ -425,27 +458,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            if (!_isNightMode)
-              ...List.generate(6, (index) {
-                final leafX = 40.0 + index * 70.0;
-                final leafY = 180.0 + ((index % 2) * 70.0);
-                final drift = sin((_floatController.value * 2 * pi) + index) * 12;
-                return Positioned(
-                  left: leafX + drift,
-                  top: leafY,
-                  child: Transform.rotate(
-                    angle: (index % 2 == 0 ? 1 : -1) * 0.8,
-                    child: Container(
-                      width: 10,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7FD86A).withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                );
-              }),
+            // ── Süzülen yapraklar + ışık zerrecikleri ────────────────
+            // Kendi CustomPaint katmanında akar; sayfayı rebuild etmez.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: FallingLeaves(isNight: _isNightMode),
+              ),
+            ),
           ],
 
           // ── 3. Subtle bottom gradient for readability ─────────────
@@ -474,11 +493,32 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           // The stage owns locomotion, gestures, particles and every body
           // animation, exactly like `LumoInteractivePetStage` in the Kotlin app.
           Positioned.fill(
-            child: LumoInteractivePetStage(
+            child: _useRive
+                ? RivePetStage(
+                    species: _species,
+                    actionState: _petAction,
+                    equippedItems: _equippedItems,
+                    reduceMotion: false,
+                    isNight: _isNightMode,
+                    onPetTappedOrStroked: () => _performPetAction(PetActionState.petted),
+                    onGroundTapped: (moveMode, message) {
+                      setState(() {
+                        _petAction = moveMode;
+                        _petLifecycle = moveMode == PetActionState.run ||
+                                moveMode == PetActionState.walk
+                            ? _PetLifecycleState.wandering
+                            : _PetLifecycleState.idle;
+                        _statusBubbleText = message;
+                      });
+                      _applyPetActionTimer();
+                    },
+                  )
+                : LumoInteractivePetStage(
               species: _species,
               actionState: _petAction,
               equippedItems: _equippedItems,
               reduceMotion: false,
+              isNight: _isNightMode,
               onPetTappedOrStroked: () => _performPetAction(PetActionState.petted),
               onGroundTapped: (moveMode, message) {
                 setState(() {
@@ -548,7 +588,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       children: [
                         Text(
                           'Merhaba, Elif!',
-                          style: GoogleFonts.nunito(
+                          style: AppText.nunito(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
@@ -564,7 +604,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         const SizedBox(height: 1),
                         Text(
                           '(Level 5, 230 xp)',
-                          style: GoogleFonts.nunito(
+                          style: AppText.nunito(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w600,
                             color: Colors.white.withValues(alpha: 0.9),
@@ -667,7 +707,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   Expanded(
                     child: Text(
                       _statusBubbleText,
-                      style: GoogleFonts.nunito(
+                      style: AppText.nunito(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF1E2E3D),
@@ -710,7 +750,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   Expanded(
                                     child: Text(
                                       'Lumi Bakım',
-                                      style: GoogleFonts.nunito(
+                                      style: AppText.nunito(
                                         fontSize: 14.5,
                                         fontWeight: FontWeight.w800,
                                         color: const Color(0xFF1E2E3D),
@@ -793,7 +833,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           children: [
                             Text(
                               'Günlük Görevler',
-                              style: GoogleFonts.nunito(
+                              style: AppText.nunito(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF1E2E3D),
@@ -803,7 +843,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               children: [
                                 Text(
                                   "Tümünü Gör",
-                                  style: GoogleFonts.nunito(
+                                  style: AppText.nunito(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF5A449C),
@@ -988,7 +1028,7 @@ class _TaskRow extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: GoogleFonts.nunito(
+                style: AppText.nunito(
                   fontSize: 15.5,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF1E2E3D),
@@ -997,7 +1037,7 @@ class _TaskRow extends StatelessWidget {
             ),
             Text(
               progressText,
-              style: GoogleFonts.nunito(
+              style: AppText.nunito(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF5D6470),
@@ -1122,7 +1162,7 @@ class _PetCareButton extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               label,
-              style: GoogleFonts.nunito(
+              style: AppText.nunito(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF1E2E3D),

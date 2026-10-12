@@ -14,6 +14,7 @@ class MicroParticle {
     this.vy = 0,
     this.color = Colors.white,
     this.isHeart = true,
+    this.isShard = false,
     this.life = 0,
   });
 
@@ -23,6 +24,7 @@ class MicroParticle {
   double vy;
   Color color;
   bool isHeart;
+  bool isShard;
   double life;
 
   bool get isDead => life <= 0;
@@ -36,7 +38,7 @@ class MicroParticle {
 /// "unit" space (see `PetStagePainter`).
 class PetRigSimulationState {
   PetRigSimulationState() {
-    particles = List<MicroParticle>.generate(18, (_) => MicroParticle());
+    particles = List<MicroParticle>.generate(26, (_) => MicroParticle());
   }
 
   // Locomotion -----------------------------------------------------------
@@ -84,6 +86,7 @@ class PetRigSimulationState {
     required double vy,
     required Color color,
     required bool isHeart,
+    bool isShard = false,
     double life = 1,
   }) {
     MicroParticle? free;
@@ -101,6 +104,7 @@ class PetRigSimulationState {
       ..vy = vy
       ..color = color
       ..isHeart = isHeart
+      ..isShard = isShard
       ..life = life;
   }
 
@@ -197,12 +201,23 @@ void stepPetSimulation(
   final speedFactor = reduceMotion ? 0.35 : 1.0;
   sim.timeSec += dt * speedFactor;
 
-  // Blinking -------------------------------------------------------------
+  // Blinking: rastgele 2-5 sn aralık (rehber §6.3).
   sim.blinkTimer -= dt;
   if (sim.blinkTimer <= 0) {
     sim.isBlinking = !sim.isBlinking;
     sim.blinkTimer =
-        sim.isBlinking ? 0.14 : _rng.nextDouble() * 3.2 + 2.0;
+        sim.isBlinking ? 0.13 : _rng.nextDouble() * 3.0 + 2.0;
+  }
+
+  // Idle çeşitliliği: etrafa bakma / kulak seğirmesi hissi (rehber §6.9).
+  // lookOffset yavaşça merkeze döner, idle'da rastgele yeni bakış seçilir.
+  sim.lookOffsetX += (0 - sim.lookOffsetX) * math.min(dt * 0.6, 1.0);
+  sim.lookOffsetY += (0 - sim.lookOffsetY) * math.min(dt * 0.6, 1.0);
+  if (sim.locomotionMode == PetActionState.idle && !reduceMotion) {
+    if (_rng.nextDouble() < dt * 0.35) {
+      sim.lookOffsetX = _rng.nextDouble() * 0.4 - 0.2;
+      sim.lookOffsetY = _rng.nextDouble() * 0.24 - 0.12;
+    }
   }
 
   // Tap ring -------------------------------------------------------------
@@ -213,11 +228,31 @@ void stepPetSimulation(
   // Particles ------------------------------------------------------------
   for (final p in sim.particles) {
     if (p.life > 0) {
-      p.life -= dt * 0.95;
+      p.life -= dt * (p.isShard ? 0.45 : 0.95);
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy -= 0.05 * dt;
+      if (!p.isShard) p.vy -= 0.05 * dt;
     }
+  }
+
+  // Kuyruk ışıltısı: üçgen artefaktlar temizlendi, seyrek yumuşak nokta (rehber §1.2).
+  // Eskiden her kare %6 olasılıkla üçgen çıkıyordu.
+  if (sim.locomotionMode != PetActionState.sleep &&
+      !reduceMotion &&
+      _rng.nextDouble() < 0.015) {
+    final behind = sim.facingDir >= 0 ? -1.0 : 1.0;
+    sim.spawnParticle(
+      x: sim.petX + behind * (0.10 + _rng.nextDouble() * 0.08),
+      y: sim.petY - 0.04 - _rng.nextDouble() * 0.08,
+      vx: behind * 0.02,
+      vy: -0.03 - _rng.nextDouble() * 0.02,
+      color: _rng.nextBool()
+          ? const Color(0xFF8B5CF6)
+          : const Color(0xFFC4B5FD),
+      isHeart: false,
+      isShard: true,
+      life: 1.0,
+    );
   }
 
   // Toy ball -------------------------------------------------------------
@@ -281,7 +316,8 @@ void stepPetSimulation(
       sim.petY += (dy / dist) * step;
       sim.gaitPhase += dt * (isRunning ? 16.5 : 9.0) * speedFactor;
 
-      if (isRunning && _rng.nextDouble() < 0.18) {
+      // 5) Toz partikülü artırıldı: koşmada daha sık + yürümede hafif.
+      if (isRunning && _rng.nextDouble() < 0.28) {
         sim.spawnParticle(
           x: sim.petX - sim.facingDir * 0.05,
           y: sim.petY + 0.06,
@@ -290,6 +326,16 @@ void stepPetSimulation(
           color: const Color(0xFFFDE047),
           isHeart: false,
           life: 0.60,
+        );
+      } else if (!isRunning && _rng.nextDouble() < 0.08) {
+        sim.spawnParticle(
+          x: sim.petX - sim.facingDir * 0.04,
+          y: sim.petY + 0.06,
+          vx: -sim.facingDir * 0.05,
+          vy: -0.04,
+          color: const Color(0xFFE9E2FF),
+          isHeart: false,
+          life: 0.45,
         );
       }
     } else {

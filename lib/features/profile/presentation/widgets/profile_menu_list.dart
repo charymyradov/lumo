@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/shared/widgets/glass_card.dart';
 
@@ -41,7 +41,7 @@ class ProfileMenuList extends StatelessWidget {
       leading: Icon(icon, color: AppColors.textSecondary, size: 24),
       title: Text(
         title,
-        style: GoogleFonts.nunito(
+        style: AppText.nunito(
           fontSize: 15,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,

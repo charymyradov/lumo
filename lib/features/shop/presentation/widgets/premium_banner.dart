@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 
 /// Alt pembe Premium kart — "Premium'a Geç" butonlu.
 class PremiumBanner extends StatelessWidget {
@@ -36,7 +36,7 @@ class PremiumBanner extends StatelessWidget {
         children: [
           Text(
             'Premium',
-            style: GoogleFonts.nunito(
+            style: AppText.nunito(
               fontSize: 18,
               fontWeight: FontWeight.w900,
               color: Colors.white,
@@ -45,7 +45,7 @@ class PremiumBanner extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             'Dizil Kraslaslar ve Temiyer',
-            style: GoogleFonts.nunito(
+            style: AppText.nunito(
               fontSize: 13.5,
               fontWeight: FontWeight.w500,
               color: Colors.white.withValues(alpha: 0.9),
@@ -72,7 +72,7 @@ class PremiumBanner extends StatelessWidget {
               ),
               child: Text(
                 "Premium'a Geç",
-                style: GoogleFonts.nunito(
+                style: AppText.nunito(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,

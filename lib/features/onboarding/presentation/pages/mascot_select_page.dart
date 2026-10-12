@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_event.dart';
@@ -72,7 +72,7 @@ class _MascotSelectPageState extends State<MascotSelectPage>
                         children: [
                           Text(
                             "Choose your mascot",
-                            style: GoogleFonts.nunito(
+                            style: AppText.nunito(
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
                               color: AppColors.textPrimary,
@@ -81,7 +81,7 @@ class _MascotSelectPageState extends State<MascotSelectPage>
                           const SizedBox(height: 4),
                           Text(
                             "They will be your guide on your journey.",
-                            style: GoogleFonts.nunito(
+                            style: AppText.nunito(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textSecondary,

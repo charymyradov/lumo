@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 
@@ -66,7 +66,7 @@ class MascotCarousel extends StatelessWidget {
         // Name
         Text(
           mascots[selectedIndex].name,
-          style: GoogleFonts.nunito(
+          style: AppText.nunito(
             fontSize: 20,
             fontWeight: FontWeight.w800,
             color: AppColors.textPrimary,
@@ -78,7 +78,7 @@ class MascotCarousel extends StatelessWidget {
         // Traits
         Text(
           mascots[selectedIndex].traits,
-          style: GoogleFonts.nunito(
+          style: AppText.nunito(
             fontSize: 13,
             fontWeight: FontWeight.w500,
             color: AppColors.textSecondary,

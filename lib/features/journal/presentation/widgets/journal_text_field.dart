@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/shared/widgets/glass_card.dart';
 
@@ -25,14 +25,14 @@ class JournalTextField extends StatelessWidget {
         maxLines: 3,
         minLines: 2,
         textInputAction: TextInputAction.newline,
-        style: GoogleFonts.nunito(
+        style: AppText.nunito(
           fontSize: 15,
           fontWeight: FontWeight.w500,
           color: AppColors.textPrimary,
         ),
         decoration: InputDecoration(
           hintText: 'Bugün neler hissettin?',
-          hintStyle: GoogleFonts.nunito(
+          hintStyle: AppText.nunito(
             fontSize: 15,
             fontWeight: FontWeight.w400,
             color: AppColors.textHint,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 
@@ -28,7 +28,7 @@ class PlaceholderPage extends StatelessWidget {
         Center(
           child: Text(
             title,
-            style: GoogleFonts.nunito(
+            style: AppText.nunito(
               fontSize: 24,
               fontWeight: FontWeight.w900,
               color: AppColors.textPrimary,

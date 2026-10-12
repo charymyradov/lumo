@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_event.dart';
@@ -80,7 +80,7 @@ class _WelcomePageState extends State<WelcomePage>
                           Text(
                             'Welcome!',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.nunito(
+                            style: AppText.nunito(
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
                               color: AppColors.textPrimary,
@@ -91,7 +91,7 @@ class _WelcomePageState extends State<WelcomePage>
                           Text(
                             'How should we address you?',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.nunito(
+                            style: AppText.nunito(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textSecondary,
@@ -125,7 +125,7 @@ class _WelcomePageState extends State<WelcomePage>
                               children: [
                                 Text(
                                   'What is your name?',
-                                  style: GoogleFonts.nunito(
+                                  style: AppText.nunito(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF9B93B3),
@@ -138,14 +138,14 @@ class _WelcomePageState extends State<WelcomePage>
                                   onChanged: (val) => context
                                       .read<OnboardingBloc>()
                                       .add(OnboardingNameChanged(val)),
-                                  style: GoogleFonts.nunito(
+                                  style: AppText.nunito(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.textPrimary,
                                   ),
                                   decoration: InputDecoration(
                                     hintText: 'name',
-                                    hintStyle: GoogleFonts.nunito(
+                                    hintStyle: AppText.nunito(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.textHint,

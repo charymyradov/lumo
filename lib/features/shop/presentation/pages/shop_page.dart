@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 import 'package:lumo/features/shop/presentation/widgets/category_selector.dart';
@@ -61,7 +61,7 @@ class _ShopPageState extends State<ShopPage> {
                 const SizedBox(height: 12),
                 Text(
                   'Mağaza',
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 23,
                     fontWeight: FontWeight.w900,
                     color: AppColors.textPrimary,

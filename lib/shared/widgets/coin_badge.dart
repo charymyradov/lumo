@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 
 /// Small golden coin with a check mark, used next to task rewards.
 class CoinBadge extends StatelessWidget {
@@ -84,7 +84,7 @@ class CoinReward extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             '$amount',
-            style: GoogleFonts.nunito(
+            style: AppText.nunito(
               fontSize: fontSize,
               fontWeight: FontWeight.w800,
               color: Colors.white,

@@ -15,7 +15,8 @@ class AssetPaths {
   static const String lumoHappy = 'assets/lumo_json/lumo_happy.json';
   static const String lumoBreathing = 'assets/lumo_json/lumo_breathing.json';
   static const String lumoSleep = 'assets/lumo_json/lumo_sleep.json';
-  static const String lumoTapReaction = 'assets/lumo_json/lumo_tap_reaction.json';
+  static const String lumoTapReaction =
+      'assets/lumo_json/lumo_tap_reaction.json';
 
   // Pets
   static const String petCat = 'assets/pets/cat.png';
@@ -23,4 +24,17 @@ class AssetPaths {
   static const String petFox = 'assets/pets/fox.png';
   static const String petPanda = 'assets/pets/panda.png';
   static const String petFossa = 'assets/pets/fossa.png';
+
+  // Navbar (koyu liquid-glass bar ikonları — siyah PNG, beyaza boyanır)
+  static const String navHome = 'assets/navbar/home.png';
+  static const String navTasks = 'assets/navbar/checklist.png';
+  static const String navJournal = 'assets/navbar/journal.png';
+  static const String navShop = 'assets/navbar/shopping-cart.png';
+  static const String navProfile = 'assets/navbar/user.png';
+
+  // Nefes egzersizi ortam sesleri
+  static const String soundForest = 'assets/sounds/bird.mp3';
+  static const String soundSea = 'assets/sounds/water.mp3';
+  static const String soundRain = 'assets/sounds/rain.mp3';
+  static const String soundFire = 'assets/sounds/fire.mp3';
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumo/core/constants/app_colors.dart';
+import 'package:lumo/core/router/main_shell.dart';
+import 'package:lumo/core/services/app_prefs.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:lumo/features/splash/presentation/pages/splash_page.dart';
 import 'package:lumo/features/onboarding/presentation/pages/onboarding_flow_page.dart';
@@ -34,23 +36,9 @@ class LumoApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
           useMaterial3: true,
           scaffoldBackgroundColor: AppColors.bgDark,
+          fontFamily: 'Nunito',
         ),
-        home: SplashPage(
-          onFinished: () {
-            // Navigator is handled inside a Builder or using a GlobalKey, 
-            // but for simplicity we will just use a minimal approach here.
-          },
-        ),
-        // We will use a wrapper widget to handle navigation from splash
-        builder: (context, child) {
-          return Navigator(
-            onGenerateRoute: (settings) {
-              return MaterialPageRoute(
-                builder: (context) => const AppRoot(),
-              );
-            },
-          );
-        },
+        home: const AppRoot(),
       ),
     );
   }
@@ -64,7 +52,25 @@ class AppRoot extends StatefulWidget {
 }
 
 class _AppRootState extends State<AppRoot> {
+  /// null = henüz diskten okunmadı.
+  bool? _onboardingCompleted;
   bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOnboardingFlag();
+  }
+
+  Future<void> _loadOnboardingFlag() async {
+    final completed = await AppPrefs.isOnboardingCompleted();
+    if (!mounted) return;
+    setState(() {
+      _onboardingCompleted = completed;
+      // Daha önce tamamlanmışsa splash/onboarding atlanır, direkt home.
+      if (completed) _showSplash = false;
+    });
+  }
 
   void _onSplashFinished() {
     setState(() {
@@ -74,6 +80,13 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   Widget build(BuildContext context) {
+    // Disk okunurken kısa splash göster (boş ekran çakmasını önler).
+    if (_onboardingCompleted == null) {
+      return SplashPage(onFinished: () {});
+    }
+    if (_onboardingCompleted == true) {
+      return const MainShell();
+    }
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 800),
       child: _showSplash

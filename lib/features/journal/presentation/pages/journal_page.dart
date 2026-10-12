@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 import 'package:lumo/features/journal/presentation/widgets/ai_insight_panel.dart';
@@ -73,7 +73,7 @@ class _JournalPageState extends State<JournalPage> {
                 const SizedBox(height: 12),
                 Text(
                   'Bugün nasılsın?',
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 21,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -128,7 +128,7 @@ class _JournalPageState extends State<JournalPage> {
                       ),
                       child: Text(
                         _saved ? 'Kaydedildi ✓' : 'Kaydet',
-                        style: GoogleFonts.nunito(
+                        style: AppText.nunito(
                           fontSize: 16.5,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,

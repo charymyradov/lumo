@@ -2,12 +2,11 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:lumo/core/constants/app_colors.dart';
+import 'package:lumo/core/constants/app_text.dart';
+import 'package:lumo/core/constants/asset_paths.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_event.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_state.dart';
-import 'package:lumo/features/onboarding/presentation/widgets/onboarding_background.dart';
 import 'package:lumo/features/onboarding/presentation/widgets/lumo_continue_button.dart';
 
 class GoalPage extends StatefulWidget {
@@ -26,7 +25,7 @@ class _GoalPageState extends State<GoalPage>
   final List<_GoalOption> goals = const [
     _GoalOption(
       id: 'stress',
-      label: 'Stress Reduction',
+      label: 'Stress reduction ',
       icon: Icons.spa_rounded,
       iconBg: Color(0xFFFFE8E0),
       color: Color(0xFFFF7A45),
@@ -85,95 +84,92 @@ class _GoalPageState extends State<GoalPage>
   Widget build(BuildContext context) {
     return BlocBuilder<OnboardingBloc, OnboardingState>(
       builder: (context, state) {
-        return OnboardingBackground(
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Üstteki gökyüzü illüstrasyonu için boşluk
-                  const Spacer(flex: 3),
-
-                  FadeTransition(
-                    opacity: _cardOpacity,
-                    child: SlideTransition(
-                      position: _cardSlide,
-                      child: Column(
-                        children: [
-                          Text(
-                            'What is your goal??',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.nunito(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
-                            transitionBuilder: (child, animation) =>
-                                FadeTransition(
-                              opacity: animation,
-                              child: ScaleTransition(
-                                scale: animation,
-                                child: child,
-                              ),
-                            ),
-                            child: state.selectedGoals.isEmpty
-                                ? const SizedBox.shrink()
-                                : Container(
-                                    key: ValueKey(state.selectedGoals.length),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: Text(
-                                      '${state.selectedGoals.length} selected',
-                                      style: GoogleFonts.nunito(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Hedef seçenekleri (cam efektli, ikon rengine göre tonlu)
-                          ...goals.map(
-                            (goal) => _GoalGlassCard(
-                              goal: goal,
-                              isSelected: state.isGoalSelected(goal.id),
-                              onTap: () => context
-                                  .read<OnboardingBloc>()
-                                  .add(OnboardingGoalToggled(goal.id)),
-                            ),
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          LumoContinueButton(
-                            label: 'Devam Et',
-                            onTap: state.hasSelectedGoals
-                                ? () => context
-                                    .read<OnboardingBloc>()
-                                    .add(const OnboardingNextPage())
-                                : null,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-                ],
+        // Referans görsel: üstte pastel gökyüzü, ortada açık sis üstünde
+        // seçim kartları, altta silik manzara. Koyu ada görseli yerine
+        // aydınlık splash_1 kullanılır.
+        return Scaffold(
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                AssetPaths.splashBg,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
               ),
-            ),
+              // Yumuşak perde: üst şeffaf -> orta açık sis -> alt hafif lavanta.
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.0, 0.30, 0.55, 1.0],
+                    colors: [
+                      Colors.transparent,
+                      Color(0x66FFF6FB),
+                      Color(0xCCF6F1FF),
+                      Color(0xE6F3EEFF),
+                    ],
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Üstteki gökyüzü illüstrasyonu için boşluk
+                      const Spacer(flex: 3),
+
+                      FadeTransition(
+                        opacity: _cardOpacity,
+                        child: SlideTransition(
+                          position: _cardSlide,
+                          child: Column(
+                            children: [
+                              Text(
+                                'What is your goal?',
+                                textAlign: TextAlign.center,
+                                style: AppText.nunito(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF40306B),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Hedef seçenekleri (referans: açık cam kart)
+                              ...goals.map(
+                                (goal) => _GoalGlassCard(
+                                  goal: goal,
+                                  isSelected: state.isGoalSelected(goal.id),
+                                  onTap: () => context
+                                      .read<OnboardingBloc>()
+                                      .add(OnboardingGoalToggled(goal.id)),
+                                ),
+                              ),
+
+                              const SizedBox(height: 6),
+
+                              LumoContinueButton(
+                                label: 'Devam Et',
+                                onTap: state.hasSelectedGoals
+                                    ? () => context
+                                        .read<OnboardingBloc>()
+                                        .add(const OnboardingNextPage())
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -222,51 +218,58 @@ class _GoalGlassCard extends StatelessWidget {
     final Color accent = goal.color;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(22),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOut,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
-                    accent.withValues(alpha: isSelected ? 0.32 : 0.20),
-                    Colors.white.withValues(alpha: isSelected ? 0.80 : 0.58),
-                    Colors.white.withValues(alpha: isSelected ? 0.66 : 0.42),
+                    // Referans: neredeyse beyaz, seçiliyken hafif vurgu.
+                    accent.withValues(alpha: isSelected ? 0.22 : 0.10),
+                    Colors.white.withValues(alpha: isSelected ? 0.88 : 0.72),
+                    const Color(0xFFFFF2F5)
+                        .withValues(alpha: isSelected ? 0.80 : 0.62),
                   ],
-                  stops: const [0.0, 0.55, 1.0],
+                  stops: const [0.0, 0.45, 1.0],
                 ),
-                borderRadius: BorderRadius.circular(26),
+                borderRadius: BorderRadius.circular(22),
                 border: Border.all(
                   color: isSelected
-                      ? accent.withValues(alpha: 0.80)
-                      : Colors.white.withValues(alpha: 0.85),
+                      ? accent.withValues(alpha: 0.75)
+                      : Colors.white.withValues(alpha: 0.90),
                   width: isSelected ? 1.8 : 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: accent.withValues(alpha: isSelected ? 0.28 : 0.12),
-                    blurRadius: isSelected ? 22 : 14,
-                    offset: const Offset(0, 8),
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: accent.withValues(alpha: isSelected ? 0.20 : 0.08),
+                    blurRadius: isSelected ? 18 : 10,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
               child: Row(
                 children: [
-                  // Sol sparkle detayı, ikon rengiyle tonlanmış
+                  // Sol mini sparkle detayı
                   Icon(
                     Icons.auto_awesome_rounded,
-                    size: 15,
-                    color: accent.withValues(alpha: isSelected ? 0.95 : 0.60),
+                    size: 13,
+                    color: accent.withValues(alpha: isSelected ? 0.90 : 0.50),
                   ),
                   const SizedBox(width: 10),
                   Container(
@@ -275,13 +278,6 @@ class _GoalGlassCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: goal.iconBg,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: accent.withValues(alpha: 0.25),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: Icon(goal.icon, color: accent, size: 23),
                   ),
@@ -289,10 +285,10 @@ class _GoalGlassCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       goal.label,
-                      style: GoogleFonts.nunito(
+                      style: AppText.nunito(
                         fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF2E2A3B),
                       ),
                     ),
                   ),

@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 import 'package:lumo/features/notifications/presentation/widgets/notification_filter_tabs.dart';
@@ -169,7 +169,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       const SizedBox(width: 12),
                       Text(
                         'Bildirimler',
-                        style: GoogleFonts.nunito(
+                        style: AppText.nunito(
                           fontSize: 21,
                           fontWeight: FontWeight.w900,
                           color: AppColors.textPrimary,
@@ -232,7 +232,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     ),
                     label: Text(
                       "Tümünü oku",
-                      style: GoogleFonts.nunito(
+                      style: AppText.nunito(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF7B5EA7),

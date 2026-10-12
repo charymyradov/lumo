@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 import 'package:lumo/features/tasks/presentation/widgets/streak_banner.dart';
@@ -169,7 +169,7 @@ class _TasksPageState extends State<TasksPage> {
 
                 Text(
                   'Görevler',
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 23,
                     fontWeight: FontWeight.w900,
                     color: AppColors.textPrimary,
@@ -243,7 +243,7 @@ class _TasksPageState extends State<TasksPage> {
           const SizedBox(height: 18),
           Text(
             'Henüz özel görev yok',
-            style: GoogleFonts.nunito(
+            style: AppText.nunito(
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
@@ -253,7 +253,7 @@ class _TasksPageState extends State<TasksPage> {
           Text(
             'Kendine özel görevler oluşturabileceksin.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(
+            style: AppText.nunito(
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: AppColors.textSecondary.withValues(alpha: 0.9),

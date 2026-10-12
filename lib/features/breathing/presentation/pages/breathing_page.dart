@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 import 'package:lumo/features/breathing/presentation/widgets/breathing_orb.dart';
 import 'package:lumo/features/breathing/presentation/widgets/duration_selector.dart';
@@ -42,7 +43,22 @@ const _patterns = [
   _BreathingPattern(title: 'Derin Nefes', inhale: 4, hold: 2, exhale: 6),
 ];
 
-const _sounds = ['Orman', 'Deniz', 'Yağmur', 'Kapalı'];
+/// Nefes ekranındaki ortam sesleri — `assets/sounds/` içindeki gerçek mp3'ler.
+/// `asset` null ise ses kapalıdır.
+class _BreathSound {
+  final String title;
+  final String? asset;
+
+  const _BreathSound(this.title, this.asset);
+}
+
+const _sounds = [
+  _BreathSound('Orman', 'sounds/bird.mp3'),
+  _BreathSound('Deniz', 'sounds/water.mp3'),
+  _BreathSound('Yağmur', 'sounds/rain.mp3'),
+  _BreathSound('Ateş', 'sounds/fire.mp3'),
+  _BreathSound('Kapalı', null),
+];
 
 class _BreathingPageState extends State<BreathingPage>
     with SingleTickerProviderStateMixin {
@@ -61,6 +77,8 @@ class _BreathingPageState extends State<BreathingPage>
   int _cycleToken = 0;
   bool _loopRunning = false;
 
+  late final AudioPlayer _audio;
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +89,9 @@ class _BreathingPageState extends State<BreathingPage>
       value: 0.15,
       duration: const Duration(seconds: 4),
     );
+    _audio = AudioPlayer();
+    _audio.setReleaseMode(ReleaseMode.loop).catchError((_) {});
+    _playCurrentSound();
     _startLoop();
   }
 
@@ -79,6 +100,7 @@ class _BreathingPageState extends State<BreathingPage>
     _cycleToken++;
     _countdown?.cancel();
     _breath.dispose();
+    _audio.dispose();
     super.dispose();
   }
 
@@ -167,14 +189,31 @@ class _BreathingPageState extends State<BreathingPage>
 
   void _cycleSound() {
     setState(() => _soundIndex = (_soundIndex + 1) % _sounds.length);
+    _playCurrentSound();
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Ses: ${_sounds[_soundIndex]}'),
+        content: Text('Ses: ${_sounds[_soundIndex].title}'),
         duration: const Duration(milliseconds: 900),
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  /// Seçili ortam sesini döngüyle çalar. "Kapalı" ise durdurur.
+  Future<void> _playCurrentSound() async {
+    try {
+      final asset = _sounds[_soundIndex].asset;
+      if (asset == null) {
+        await _audio.stop();
+        return;
+      }
+      await _audio.stop();
+      await _audio.setVolume(0.6);
+      await _audio.play(AssetSource(asset));
+    } catch (_) {
+      // Ses çalamazsa sessizce geç — nefes döngüsü kırılmaz.
+    }
   }
 
   @override
@@ -226,7 +265,7 @@ class _BreathingPageState extends State<BreathingPage>
                         child: Text(
                           _pattern.title,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.nunito(
+                          style: AppText.nunito(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -248,7 +287,7 @@ class _BreathingPageState extends State<BreathingPage>
                 // ── Faz yazısı (görseldeki konum) ──
                 Text(
                   _phaseText,
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 21,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -267,7 +306,7 @@ class _BreathingPageState extends State<BreathingPage>
                   child: Text(
                     '$_secondsLeft saniye',
                     key: ValueKey<int>(_secondsLeft),
-                    style: GoogleFonts.nunito(
+                    style: AppText.nunito(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white.withValues(alpha: 0.92),
@@ -303,7 +342,7 @@ class _BreathingPageState extends State<BreathingPage>
                 const SizedBox(height: 12),
 
                 // ── Ses hapı ──
-                SoundToggle(sound: _sounds[_soundIndex], onTap: _cycleSound),
+                SoundToggle(sound: _sounds[_soundIndex].title, onTap: _cycleSound),
 
                 // Kedi illüstrasyonu nefes.png'nin altında kalıyor
                 const Spacer(),

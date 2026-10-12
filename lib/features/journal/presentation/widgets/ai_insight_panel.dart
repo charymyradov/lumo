@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/shared/widgets/glass_card.dart';
 
@@ -40,7 +40,7 @@ class AiInsightPanel extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 'AI İçgörün',
-                style: GoogleFonts.nunito(
+                style: AppText.nunito(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
@@ -81,7 +81,7 @@ class AiInsightPanel extends StatelessWidget {
                       )
                     : Text(
                         message,
-                        style: GoogleFonts.nunito(
+                        style: AppText.nunito(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w500,
                           height: 1.45,
@@ -124,7 +124,7 @@ class AiPatternStrip extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '3 / 10',
-                    style: GoogleFonts.nunito(
+                    style: AppText.nunito(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textSecondary,
@@ -139,7 +139,7 @@ class AiPatternStrip extends StatelessWidget {
                       size: 14, color: AppColors.primary),
                   Text(
                     'AI İçgörün Desenleri',
-                    style: GoogleFonts.nunito(
+                    style: AppText.nunito(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,
@@ -153,7 +153,7 @@ class AiPatternStrip extends StatelessWidget {
           Expanded(
             child: Text(
               'Bugün kendine karşı çok naziksin! Bu dengeli ruh halin, yardım için de iyi bir temel oluşturuyor.',
-              style: GoogleFonts.nunito(
+              style: AppText.nunito(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 height: 1.4,

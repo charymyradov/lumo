@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:lumo/core/services/audio_service.dart';
+import 'package:lumo/core/services/haptic_service.dart';
 import 'package:lumo/features/home/domain/entities/cosmetic_item.dart';
 import 'package:lumo/features/home/domain/entities/mascot_species.dart';
 import 'package:lumo/features/home/domain/entities/pet_action_state.dart';
@@ -27,6 +29,7 @@ class LumoInteractivePetStage extends StatefulWidget {
     required this.actionState,
     required this.equippedItems,
     required this.reduceMotion,
+    this.isNight = false,
     required this.onPetTappedOrStroked,
     required this.onGroundTapped,
   });
@@ -41,6 +44,9 @@ class LumoInteractivePetStage extends StatefulWidget {
 
   /// When true the whole rig runs at 35% speed and stops self-wandering.
   final bool reduceMotion;
+
+  /// Night mode tint for the pet (4 - ışık tepkisi).
+  final bool isNight;
 
   /// Called when the pet itself (body/head) was tapped or stroked.
   final VoidCallback onPetTappedOrStroked;
@@ -221,6 +227,9 @@ class _LumoInteractivePetStageState extends State<LumoInteractivePetStage>
 
   /// Port of the Kotlin tap-on-pet branch (5 hearts + happy reaction).
   void _petThePet() {
+    // His: her dokunuşta animasyon + ses + titreşim (rehber §8).
+    HapticService.petTap();
+    PetSoundService.playPurr();
     _sim.locomotionMode = PetActionState.petted;
     _sim.actionTimer = 3.2;
     _sim.jumpPhase = 0.01;
@@ -276,14 +285,17 @@ class _LumoInteractivePetStageState extends State<LumoInteractivePetStage>
       onTapUp: (details) => _handleTap(details.localPosition),
       onDoubleTapDown: (details) => _handleDoubleTap(details.localPosition),
       onPanUpdate: (details) => _handleDrag(details.localPosition),
-      child: CustomPaint(
-        painter: PetStagePainter(
-          sim: _sim,
-          species: widget.species,
-          flags: _flags,
-          repaint: _repaint,
+      child: RepaintBoundary(
+        child: CustomPaint(
+          painter: PetStagePainter(
+            sim: _sim,
+            species: widget.species,
+            flags: _flags,
+            isNight: widget.isNight,
+            repaint: _repaint,
+          ),
+          child: const SizedBox.expand(),
         ),
-        child: const SizedBox.expand(),
       ),
     );
   }

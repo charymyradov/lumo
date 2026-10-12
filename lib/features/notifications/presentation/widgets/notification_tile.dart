@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 
 /// Görseldeki beyaz bildirim kartı:
 /// renkli yuvarlak ikon • kalın başlık • açıklama • "2 dk önce".
@@ -61,7 +61,7 @@ class NotificationTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF2D1B45),
@@ -70,7 +70,7 @@ class NotificationTile extends StatelessWidget {
                 const SizedBox(height: 1),
                 Text(
                   emoji == null ? body : '$body  $emoji',
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF5D6470),
@@ -79,7 +79,7 @@ class NotificationTile extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   timeAgo,
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF9AA0AC),

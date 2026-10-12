@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/shared/widgets/glass_card.dart';
 
@@ -45,7 +45,7 @@ class StatsRow extends StatelessWidget {
               const SizedBox(width: 5),
               Text(
                 value,
-                style: GoogleFonts.nunito(
+                style: AppText.nunito(
                   fontSize: 17,
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary,
@@ -56,7 +56,7 @@ class StatsRow extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             label,
-            style: GoogleFonts.nunito(
+            style: AppText.nunito(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,

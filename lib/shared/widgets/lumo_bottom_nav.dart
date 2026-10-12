@@ -1,52 +1,30 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:lumo/core/constants/app_colors.dart';
+import 'package:lumo/core/constants/app_text.dart';
 
 /// A single destination of [LumoBottomNav].
 class LumoNavItem {
   final String label;
-  final IconData icon;
-  final IconData activeIcon;
+  final String asset;
 
-  const LumoNavItem({
-    required this.label,
-    required this.icon,
-    required this.activeIcon,
-  });
+  const LumoNavItem({required this.label, required this.asset});
 }
 
 const List<LumoNavItem> lumoNavItems = [
-  LumoNavItem(
-    label: 'Yaşam',
-    icon: Icons.home_outlined,
-    activeIcon: Icons.home_rounded,
-  ),
-  LumoNavItem(
-    label: 'Görevler',
-    icon: Icons.assignment_outlined,
-    activeIcon: Icons.assignment_rounded,
-  ),
-  LumoNavItem(
-    label: 'Günlük',
-    icon: Icons.menu_book_outlined,
-    activeIcon: Icons.menu_book_rounded,
-  ),
-  LumoNavItem(
-    label: 'Mağaza',
-    icon: Icons.storefront_outlined,
-    activeIcon: Icons.storefront_rounded,
-  ),
-  LumoNavItem(
-    label: 'Profil',
-    icon: Icons.person_outline_rounded,
-    activeIcon: Icons.person_rounded,
-  ),
+  LumoNavItem(label: 'Yaşam', asset: 'assets/navbar/home.png'),
+  LumoNavItem(label: 'Görevler', asset: 'assets/navbar/checklist.png'),
+  LumoNavItem(label: 'Günlük', asset: 'assets/navbar/journal.png'),
+  LumoNavItem(label: 'Mağaza', asset: 'assets/navbar/shopping-cart.png'),
+  LumoNavItem(label: 'Profil', asset: 'assets/navbar/user.png'),
 ];
 
-/// Frosted glass bottom navigation bar.
-/// The bar itself is translucent so the page background bleeds through it.
+/// Sade floating cam alt bar.
+///
+/// Abartılı parlama/gölge yok: hafif blur'lu yarı saydam beyaz zemin,
+/// seçili öğenin arkasında düz, yumuşak bir hap. İkonlar
+/// `assets/navbar/` içindeki PNG'lerdir.
 class LumoBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -61,62 +39,131 @@ class LumoBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-        child: Container(
-          padding: EdgeInsets.only(
-            top: 10,
-            bottom: bottomInset > 0 ? bottomInset : 12,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.42),
-            border: const Border(
-              top: BorderSide(color: Colors.white, width: 1.2),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          16, 0, 16, (bottomInset > 0 ? bottomInset : 10) + 6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(26),
+              color: Colors.white.withValues(alpha: 0.55),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.6),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-          ),
-          child: Row(
-            children: List.generate(lumoNavItems.length, (index) {
-              final item = lumoNavItems[index];
-              final selected = index == currentIndex;
-              final color = selected
-                  ? AppColors.primary
-                  : const Color(0xFF5D6470).withValues(alpha: 0.85);
+            child: SizedBox(
+              height: 66,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final itemWidth =
+                      constraints.maxWidth / lumoNavItems.length;
 
-              return Expanded(
-                child: InkWell(
-                  onTap: () => onTap(index),
-                  splashFactory: NoSplash.splashFactory,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                  return Stack(
                     children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        transitionBuilder: (child, animation) =>
-                            ScaleTransition(scale: animation, child: child),
-                        child: Icon(
-                          selected ? item.activeIcon : item.icon,
-                          key: ValueKey<bool>(selected),
-                          size: 25,
-                          color: color,
+                      // ── Seçili hap (sade, düz renk) ──
+                      AnimatedPositioned(
+                        duration:
+                            const Duration(milliseconds: 350),
+                        curve: Curves.easeInOutCubic,
+                        left: currentIndex * itemWidth + 6,
+                        width: itemWidth - 12,
+                        top: 7,
+                        bottom: 7,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius:
+                                BorderRadius.circular(19),
+                            color: AppColors.primary
+                                .withValues(alpha: 0.14),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        item.label,
-                        style: GoogleFonts.nunito(
-                          fontSize: 11.5,
-                          fontWeight:
-                              selected ? FontWeight.w800 : FontWeight.w600,
-                          color: color,
-                        ),
+
+                      // ── Öğeler ──
+                      Row(
+                        children: List.generate(
+                            lumoNavItems.length, (index) {
+                          final item = lumoNavItems[index];
+                          final selected =
+                              index == currentIndex;
+                          final fgColor = selected
+                              ? AppColors.primary
+                              : const Color(0xFF5D6470)
+                                  .withValues(alpha: 0.8);
+
+                          return Expanded(
+                            child: InkWell(
+                              onTap: () => onTap(index),
+                              splashFactory:
+                                  NoSplash.splashFactory,
+                              highlightColor:
+                                  Colors.transparent,
+                              borderRadius:
+                                  BorderRadius.circular(19),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
+                                mainAxisSize:
+                                    MainAxisSize.max,
+                                children: [
+                                  AnimatedScale(
+                                    scale:
+                                        selected ? 1.1 : 1.0,
+                                    duration: const Duration(
+                                        milliseconds: 300),
+                                    curve: Curves.easeInOutCubic,
+                                    child: Image.asset(
+                                      item.asset,
+                                      width: 22,
+                                      height: 22,
+                                      color: fgColor,
+                                      colorBlendMode:
+                                          BlendMode.srcIn,
+                                      errorBuilder: (_,
+                                              __, ___) =>
+                                          Icon(
+                                        Icons.circle,
+                                        size: 22,
+                                        color: fgColor,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  AnimatedDefaultTextStyle(
+                                    duration: const Duration(
+                                        milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                    style: AppText.nunito(
+                                      fontSize: 11.5,
+                                      fontWeight: selected
+                                          ? FontWeight.w800
+                                          : FontWeight.w600,
+                                      color: fgColor,
+                                    ),
+                                    child: Text(item.label),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
                       ),
                     ],
-                  ),
-                ),
-              );
-            }),
+                  );
+                },
+              ),
+            ),
           ),
         ),
       ),

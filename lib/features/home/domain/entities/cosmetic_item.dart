@@ -146,7 +146,7 @@ final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>
     iconKey: 'butterfly_wings',
     accentColor: Color(0xFF38BDF8),
     isOwned: true,
-    isEquipped: true,
+    isEquipped: false,
   ),
   const CosmeticItem(
     id: 'item_flower_wreath',

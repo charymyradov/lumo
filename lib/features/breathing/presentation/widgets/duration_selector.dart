@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 
 /// Görseldeki süre sırası: [1 dk] [3 dk] [5 dk] [10 dk]
 class DurationSelector extends StatelessWidget {
@@ -44,7 +44,7 @@ class DurationSelector extends StatelessWidget {
                   labels[i],
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.nunito(
+                  style: AppText.nunito(
                     fontSize: 13,
                     fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                     color: Colors.white,

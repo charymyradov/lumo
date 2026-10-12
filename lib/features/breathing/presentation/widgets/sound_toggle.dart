@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:lumo/core/constants/app_text.dart';
 
 /// Görseldeki ortalanmış ses hapı: [ Ses  Orman  ▾ ]
 class SoundToggle extends StatelessWidget {
@@ -33,7 +33,7 @@ class SoundToggle extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               'Ses  $sound',
-              style: GoogleFonts.nunito(
+              style: AppText.nunito(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

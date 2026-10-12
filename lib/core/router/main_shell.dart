@@ -7,6 +7,13 @@ import 'package:lumo/features/tasks/presentation/pages/tasks_page.dart';
 import 'package:lumo/shared/widgets/lumo_bottom_nav.dart';
 
 /// Root shell that hosts the 5 main tabs behind the glass bottom nav.
+///
+/// Switching is instant via [IndexedStack]: no fade, no slide — the previous
+/// fade animated the incoming page from opacity 0 over the dark shell
+/// background, which read as a black flash. All pages stay mounted so tab
+/// state (e.g. home pet simulation) is preserved; offscreen tickers are
+/// muted with [TickerMode] and each tab paints inside its own
+/// [RepaintBoundary] so one tab's animations never repaint the others.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -16,6 +23,14 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0; // Open on Home (Yaşam)
+
+  static const _pages = [
+    HomePage(),
+    TasksPage(),
+    JournalPage(),
+    ShopPage(),
+    ProfilePage(),
+  ];
 
   void _onTap(int index) {
     if (index == _currentIndex) return;
@@ -28,12 +43,14 @@ class _MainShellState extends State<MainShell> {
       extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
-        children: const [
-          HomePage(),
-          TasksPage(),
-          JournalPage(),
-          ShopPage(),
-          ProfilePage(),
+        children: [
+          for (var i = 0; i < _pages.length; i++)
+            RepaintBoundary(
+              child: TickerMode(
+                enabled: i == _currentIndex,
+                child: _pages[i],
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: LumoBottomNav(
