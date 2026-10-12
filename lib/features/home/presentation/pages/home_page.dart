@@ -5,6 +5,7 @@ import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 import 'package:lumo/core/services/audio_service.dart';
 import 'package:lumo/core/services/haptic_service.dart';
+import 'package:lumo/core/services/user_profile_store.dart';
 import 'package:lumo/features/breathing/presentation/pages/breathing_page.dart';
 import 'package:lumo/features/home/domain/entities/cosmetic_item.dart';
 import 'package:lumo/features/home/domain/entities/mascot_species.dart';
@@ -44,8 +45,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  /// Mascot species drawn by the interactive pet stage.
-  static const MascotSpecies _species = MascotSpecies.fox;
+  /// Onboarding'de seçilen maskot (local storage'dan yüklenir).
+  MascotSpecies _species = MascotSpecies.fox;
+
+  /// Onboarding'de girilen isim — selamlamada kullanılır.
+  String _userName = '';
 
   /// Adım 2: `lumo.riv` hazır olunca true yap — Rive sahneye geçer,
   /// dosya yoksa otomatik vektör sahneye düşer.
@@ -76,9 +80,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _loadProfile();
     _updateEnvironmentMode();
     _startVitalPulse();
     _scheduleIdleWander();
+  }
+
+  /// Kayıtlı profil (isim + maskot) — yoksa varsayılanlarla devam edilir.
+  Future<void> _loadProfile() async {
+    final profile = await UserProfileStore.load();
+    if (!mounted) return;
+    setState(() {
+      _userName = profile.name;
+      _species = MascotSpecies.fromId(profile.speciesId);
+    });
   }
 
   @override
@@ -587,7 +602,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Merhaba, Elif!',
+                          _userName.isEmpty
+                              ? 'Merhaba!'
+                              : 'Merhaba, $_userName!',
                           style: AppText.nunito(
                             fontSize: 17,
                             fontWeight: FontWeight.w800,

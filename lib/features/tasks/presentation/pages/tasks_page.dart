@@ -1,120 +1,47 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
+import 'package:lumo/features/tasks/domain/entities/quest.dart';
+import 'package:lumo/features/tasks/presentation/cubit/quest_cubit.dart';
+import 'package:lumo/features/tasks/presentation/cubit/quest_state.dart';
+import 'package:lumo/features/tasks/presentation/widgets/quest_visuals.dart';
 import 'package:lumo/features/tasks/presentation/widgets/streak_banner.dart';
 import 'package:lumo/features/tasks/presentation/widgets/task_card.dart';
 import 'package:lumo/shared/widgets/segmented_tabs.dart';
 
-/// Model describing one task row.
-class _TaskItem {
-  final String title;
-  final String subtitle;
-  final int reward;
-  final String duration;
-  final IconData icon;
-  final Color color;
-
-  const _TaskItem({
-    required this.title,
-    required this.subtitle,
-    required this.reward,
-    required this.duration,
-    required this.icon,
-    required this.color,
-  });
-}
-
-class TasksPage extends StatefulWidget {
+/// Görevler sayfası — liste Gemini AI'dan gelir.
+/// Anahtar yoksa / çevrimdışıyken önbellek + yerleşik liste gösterilir;
+/// kart tasarımı ve sekmeler eskisiyle aynı.
+class TasksPage extends StatelessWidget {
   const TasksPage({super.key});
 
   @override
-  State<TasksPage> createState() => _TasksPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => QuestCubit()..load(),
+      child: const _TasksView(),
+    );
+  }
 }
 
-class _TasksPageState extends State<TasksPage> {
+class _TasksView extends StatefulWidget {
+  const _TasksView();
+
+  @override
+  State<_TasksView> createState() => _TasksViewState();
+}
+
+class _TasksViewState extends State<_TasksView> {
   static const List<String> _tabs = ['Günlük', 'Haftalık', 'Özel'];
 
   int _selectedTab = 0;
-
-  static const List<_TaskItem> _dailyTasks = [
-    _TaskItem(
-      title: 'Su iç',
-      subtitle: 'Sağlığın için su iç.',
-      reward: 10,
-      duration: '1 dk',
-      icon: Icons.water_drop_rounded,
-      color: Color(0xFF4FB3F0),
-    ),
-    _TaskItem(
-      title: '10.000 adım at',
-      subtitle: 'Hareket et, enerjini artır.',
-      reward: 20,
-      duration: '20 dk',
-      icon: Icons.directions_run_rounded,
-      color: Color(0xFF58C77A),
-    ),
-    _TaskItem(
-      title: 'Nefes egzersizi yap',
-      subtitle: 'Sakinleş ve odaklan.',
-      reward: 15,
-      duration: '5 dk',
-      icon: Icons.air_rounded,
-      color: Color(0xFF6FC8E8),
-    ),
-    _TaskItem(
-      title: 'Günlük yaz',
-      subtitle: 'Düşüncelerini paylaş.',
-      reward: 25,
-      duration: '10 dk',
-      icon: Icons.edit_note_rounded,
-      color: Color(0xFF9B6FE0),
-    ),
-  ];
-
-  static const List<_TaskItem> _weeklyTasks = [
-    _TaskItem(
-      title: '5 gün arka arkaya spor yap',
-      subtitle: 'Haftalık hedefine ulaş.',
-      reward: 60,
-      duration: '5 gün',
-      icon: Icons.fitness_center_rounded,
-      color: Color(0xFFE09B3D),
-    ),
-    _TaskItem(
-      title: '3 kez nefes seansı tamamla',
-      subtitle: 'Zihnini dinlendir.',
-      reward: 40,
-      duration: '3 seans',
-      icon: Icons.self_improvement_rounded,
-      color: Color(0xFF5CC8A0),
-    ),
-    _TaskItem(
-      title: 'Haftalık hedef yaz',
-      subtitle: 'Kendin için bir hedef belirle.',
-      reward: 35,
-      duration: '15 dk',
-      icon: Icons.flag_rounded,
-      color: Color(0xFFE05C7A),
-    ),
-  ];
-
-  final Set<int> _completedDaily = {};
-  final Set<int> _completedWeekly = {};
+  final Set<String> _completedIds = {};
 
   bool get _isWeekly => _selectedTab == 1;
-
-  List<_TaskItem> get _tasks => _isWeekly ? _weeklyTasks : _dailyTasks;
-
-  Set<int> get _completed =>
-      _isWeekly ? _completedWeekly : _completedDaily;
-
-  double get _progress {
-    if (_tasks.isEmpty) return 0;
-    return _completed.length / _tasks.length;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,20 +94,14 @@ class _TasksPageState extends State<TasksPage> {
 
                 const SizedBox(height: 22),
 
-                Text(
-                  'Görevler',
-                  style: AppText.nunito(
-                    fontSize: 23,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                _buildHeader(),
+
                 const SizedBox(height: 12),
 
                 Expanded(
                   child: _selectedTab == 2
                       ? _buildCustomEmptyState()
-                      : _buildTaskList(),
+                      : _buildQuestList(),
                 ),
               ],
             ),
@@ -190,29 +111,134 @@ class _TasksPageState extends State<TasksPage> {
     );
   }
 
-  Widget _buildTaskList() {
-    return ListView(
-      physics: const BouncingScrollPhysics(),
+  /// Başlık + kaynak rozeti + yenile butonu.
+  Widget _buildHeader() {
+    return Row(
       children: [
-        ...List.generate(_tasks.length, (index) {
-          final task = _tasks[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: TaskCard(
-              title: task.title,
-              subtitle: task.subtitle,
-              reward: task.reward,
-              duration: task.duration,
-              icon: task.icon,
-              iconColor: task.color,
-              completed: _completed.contains(index),
-              onTap: () => _toggleTask(index),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Görevler',
+                style: AppText.nunito(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              BlocBuilder<QuestCubit, QuestState>(
+                buildWhen: (p, c) => c is QuestLoaded,
+                builder: (context, state) {
+                  if (state is! QuestLoaded) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      switch (state.bundle.source) {
+                        QuestSource.fresh => '✨ Yapay zekâ ile hazırlandı',
+                        QuestSource.cache => 'Önbellekten gösteriliyor',
+                        QuestSource.fallback => 'Hazır liste',
+                      },
+                      style: AppText.nunito(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary
+                            .withValues(alpha: 0.85),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        BlocBuilder<QuestCubit, QuestState>(
+          builder: (context, state) {
+            final busy = state is QuestLoading;
+            return IconButton(
+              onPressed: busy
+                  ? null
+                  : () => context.read<QuestCubit>().refresh(),
+              tooltip: 'Görevleri yenile',
+              icon: busy
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    )
+                  : const Icon(
+                      Icons.refresh_rounded,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuestList() {
+    return BlocConsumer<QuestCubit, QuestState>(
+      listenWhen: (p, c) => c is QuestLoaded && c.notice != null,
+      listener: (context, state) {
+        final notice = (state as QuestLoaded).notice;
+        if (notice == null) return;
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(notice),
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
             ),
           );
-        }),
-        StreakBanner(days: 7, reward: 100, progress: _progress),
-        const SizedBox(height: 100),
-      ],
+      },
+      builder: (context, state) {
+        final bundle = switch (state) {
+          QuestLoaded(:final bundle) => bundle,
+          QuestLoading(:final current?) => current,
+          _ => null,
+        };
+        if (bundle == null) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final tasks = _isWeekly ? bundle.weekly : bundle.daily;
+        final doneCount =
+            tasks.where((q) => _completedIds.contains(q.id)).length;
+        final progress =
+            tasks.isEmpty ? 0.0 : doneCount / tasks.length;
+
+        return ListView(
+          physics: const BouncingScrollPhysics(),
+          children: [
+            ...List.generate(tasks.length, (index) {
+              final task = tasks[index];
+              final visual = questVisuals(task.category);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: TaskCard(
+                  title: task.title,
+                  subtitle: task.subtitle,
+                  reward: task.reward,
+                  duration: task.duration,
+                  icon: visual.icon,
+                  iconColor: visual.color,
+                  completed: _completedIds.contains(task.id),
+                  onTap: () => _toggleTask(task.id),
+                ),
+              );
+            }),
+            StreakBanner(days: 7, reward: 100, progress: progress),
+            const SizedBox(height: 100),
+          ],
+        );
+      },
     );
   }
 
@@ -264,10 +290,10 @@ class _TasksPageState extends State<TasksPage> {
     );
   }
 
-  void _toggleTask(int index) {
+  void _toggleTask(String id) {
     setState(() {
-      if (!_completed.add(index)) {
-        _completed.remove(index);
+      if (!_completedIds.add(id)) {
+        _completedIds.remove(id);
       }
     });
   }

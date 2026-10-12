@@ -18,6 +18,7 @@ dependencies:
   rive: ^0.14.11
   shared_preferences: ^2.5.6
   audioplayers: ^6.0.0
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:

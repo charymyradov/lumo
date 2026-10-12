@@ -51,6 +51,13 @@ class _GoalPageState extends State<GoalPage>
       iconBg: Color(0xFFFFF1D6),
       color: Color(0xFFFFA81A),
     ),
+    _GoalOption(
+      id: 'meditation',
+      label: 'Meditasyon',
+      icon: Icons.self_improvement_rounded,
+      iconBg: Color(0xFFE8E4FF),
+      color: Color(0xFF8B5CF6),
+    ),
   ];
 
   @override

@@ -6,6 +6,7 @@ import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/router/main_shell.dart';
 import 'package:lumo/core/services/app_prefs.dart';
+import 'package:lumo/core/services/user_profile_store.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_event.dart';
 import 'package:lumo/features/onboarding/presentation/widgets/onboarding_background.dart';
@@ -135,7 +136,19 @@ class _PermissionsPageState extends State<PermissionsPage>
                       LumoContinueButton(
                         label: 'Devam Et',
                         onTap: () async {
+                          // Profil (isim, hedefler, maskot) kalıcı saklanır —
+                          // home selamlaması ve AI görevler bunları kullanır.
+                          final obState =
+                              context.read<OnboardingBloc>().state;
+                          await UserProfileStore.save(
+                            name: obState.name,
+                            goals: obState.selectedGoals,
+                            mascotIndex:
+                                obState.selectedMascotIndex,
+                          );
+
                           // Complete onboarding logic
+                          if (!context.mounted) return;
                           context
                               .read<OnboardingBloc>()
                               .add(const OnboardingCompleted());
