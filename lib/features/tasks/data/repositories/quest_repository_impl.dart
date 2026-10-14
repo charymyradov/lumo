@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lumo/core/constants/ai_config.dart';
 import 'package:lumo/core/error/exceptions.dart';
+import 'package:lumo/core/error/failures.dart';
 import 'package:lumo/features/tasks/data/datasources/quest_defaults.dart';
 import 'package:lumo/features/tasks/data/datasources/quest_remote_datasource.dart';
 import 'package:lumo/features/tasks/data/models/quest_model.dart';
@@ -17,7 +19,8 @@ class QuestRepositoryImpl implements QuestRepository {
   final QuestRemoteDataSource _remote;
   final SharedPreferences _prefs;
 
-  QuestRepositoryImpl({QuestRemoteDataSource? remote, required SharedPreferences prefs})
+  QuestRepositoryImpl(
+      {QuestRemoteDataSource? remote, required SharedPreferences prefs})
       : _remote = remote ?? QuestRemoteDataSource(),
         _prefs = prefs;
 
@@ -27,7 +30,7 @@ class QuestRepositoryImpl implements QuestRepository {
   @override
   Future<QuestBundle> getQuests(
       {bool forceRefresh = false,
-      String context = '',
+      String promptContext = '',
       String profileKey = ''}) async {
     final cached = _readCache();
     final profileChanged = cached != null &&
@@ -47,12 +50,15 @@ class QuestRepositoryImpl implements QuestRepository {
     }
 
     try {
-      final fresh = await _remote.fetchQuests(context: context);
+      final fresh = await _remote.fetchQuests(promptContext: promptContext);
       await _writeCache(fresh, profileKey);
       return fresh;
-    } on MissingApiKeyException {
+    } on MissingApiKeyException catch (e) {
+      debugPrint('QuestRepository: ${failureFromException(e).message}');
       return cached ?? fallbackQuestBundle();
-    } on ServerException {
+    } on ServerException catch (e) {
+      final Failure failure = failureFromException(e);
+      debugPrint('QuestRepository: ${failure.message}');
       if (cached != null) {
         return QuestBundle(
           daily: cached.daily,
@@ -68,6 +74,9 @@ class QuestRepositoryImpl implements QuestRepository {
         source: QuestSource.fallback,
         fetchedAt: fb.fetchedAt,
       );
+    } on CacheException catch (e) {
+      debugPrint('QuestRepository: ${failureFromException(e).message}');
+      return cached ?? fallbackQuestBundle();
     }
   }
 
@@ -95,9 +104,8 @@ class QuestRepositoryImpl implements QuestRepository {
         daily: list(map['daily'], 'daily'),
         weekly: list(map['weekly'], 'weekly'),
         source: QuestSource.cache,
-        fetchedAt:
-            DateTime.tryParse(map['fetchedAt'] as String? ?? '') ??
-                DateTime.now(),
+        fetchedAt: DateTime.tryParse(map['fetchedAt'] as String? ?? '') ??
+            DateTime.now(),
       );
     } catch (_) {
       return null;
@@ -148,7 +156,7 @@ class QuestRepositoryImpl implements QuestRepository {
       );
       await _prefs.setString(_kDate, DateTime.now().toIso8601String());
     } catch (_) {
-      throw const CacheException('Görev önbelleği yazılamadı');
+      throw const CacheException('Could not write quest cache');
     }
   }
 }

@@ -35,7 +35,8 @@ class _MascotSelectPageState extends State<MascotSelectPage>
     _cardSlide = Tween<Offset>(
       begin: const Offset(0, 0.15),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
+    ).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
 
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) _animController.forward();
@@ -59,7 +60,7 @@ class _MascotSelectPageState extends State<MascotSelectPage>
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  
+
                   // Less spacing on top for mascot page to fit everything
                   const Spacer(flex: 2),
 
@@ -89,7 +90,6 @@ class _MascotSelectPageState extends State<MascotSelectPage>
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 16),
-
                           MascotCarousel(
                             selectedIndex: state.selectedMascotIndex,
                             onMascotTap: (index) {
@@ -98,9 +98,7 @@ class _MascotSelectPageState extends State<MascotSelectPage>
                                   .add(OnboardingMascotSelected(index));
                             },
                           ),
-
                           const SizedBox(height: 32),
-
                           LumoContinueButton(
                             label: 'Select',
                             onTap: () => context

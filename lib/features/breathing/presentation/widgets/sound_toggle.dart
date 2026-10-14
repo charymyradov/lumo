@@ -32,7 +32,7 @@ class SoundToggle extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Ses  $sound',
+              'Sound  $sound',
               style: AppText.nunito(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

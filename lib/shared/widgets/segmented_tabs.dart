@@ -47,9 +47,11 @@ class SegmentedTabs extends StatelessWidget {
                     height: 42,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      gradient: selected ? const LinearGradient(
-                        colors: [Color(0xFF4FA8F0), Color(0xFF3E8FE0)],
-                      ) : null,
+                      gradient: selected
+                          ? const LinearGradient(
+                              colors: [Color(0xFF4FA8F0), Color(0xFF3E8FE0)],
+                            )
+                          : null,
                       color: selected ? null : Colors.transparent,
                       borderRadius: BorderRadius.circular(26),
                       boxShadow: selected
@@ -67,7 +69,8 @@ class SegmentedTabs extends StatelessWidget {
                       labels[index],
                       style: AppText.nunito(
                         fontSize: 16,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight:
+                            selected ? FontWeight.w800 : FontWeight.w600,
                         color: selected
                             ? Colors.white
                             : AppColors.textPrimary.withValues(alpha: 0.85),

@@ -18,29 +18,29 @@ class QuestRemoteDataSource {
   static const _timeout = Duration(seconds: 25);
 
   static const _systemPrompt = '''
-Sen Lumo adlı sevimli bir alışkanlık/pet oyununun görev üreticisisin.
-Kullanıcı Türkçe konuşur; TÜM metinleri Türkçe yaz.
-SADECE geçerli JSON döndür — açıklama, markdown, kod bloğu YOK.
-Şema: {"daily": [Quest x4], "weekly": [Quest x3]}
-Quest: {"title": "kısa vurucu başlık (en fazla 40 karakter)",
-"subtitle": "tek cümle motive edici açıklama",
-"reward": 10-60 arası coin,
-"duration": "5 dk" / "20 dk" / "3 seans" gibi kısa süre,
-"category": "water|move|breath|mind|journal|sport|social|health|sleep" içinden biri}
-Kurallar: küçük adımlar, pozitif dil, tekrar yok, günlükler 1 günde bitecek işler.
+You are the quest generator for Lumo, a cute habit/pet game.
+The user speaks English; write ALL text in English.
+Return valid JSON ONLY — no explanations, no markdown, no code blocks.
+Schema: {"daily": [Quest x4], "weekly": [Quest x3]}
+Quest: {"title": "short punchy title (max 40 characters)",
+"subtitle": "one motivational sentence",
+"reward": 10-60 coins,
+"duration": short duration like "5 min" / "20 min" / "3 sessions",
+"category": one of "water|move|breath|mind|journal|sport|social|health|sleep"}
+Rules: small steps, positive language, no repetition, daily quests are tasks completable in 1 day.
 ''';
 
-  /// [context]: kullanıcıyı kişiselleştirmek için serbest metin
+  /// [promptContext]: kullanıcıyı kişiselleştirmek için serbest metin
   /// (örn. hedefler, seri günü). Boş olabilir.
-  Future<QuestBundle> fetchQuests({String context = ''}) async {
+  Future<QuestBundle> fetchQuests({String promptContext = ''}) async {
     final apiKey = AiConfig.geminiApiKey;
     if (apiKey.isEmpty) throw const MissingApiKeyException();
 
     final today = DateTime.now();
     final userText = '''
-Bugünün tarihi: ${today.day}.${today.month}.${today.year}.
-${context.trim().isEmpty ? '' : 'Kullanıcı bağlamı: ${context.trim()}\n'}
-4 günlük + 3 haftalık görev üret.
+Today's date: ${today.day}.${today.month}.${today.year}.
+${promptContext.trim().isEmpty ? '' : 'User context: ${promptContext.trim()}\n'}
+Generate 4 daily + 3 weekly quests.
 ''';
 
     final uri = Uri.parse(
@@ -74,38 +74,36 @@ ${context.trim().isEmpty ? '' : 'Kullanıcı bağlamı: ${context.trim()}\n'}
           )
           .timeout(_timeout);
     } on TimeoutException {
-      throw const ServerException('Yapay zekâ zaman aşımına uğradı');
+      throw const ServerException('AI request timed out');
     } catch (e) {
-      throw ServerException('Ağ hatası: $e');
+      throw ServerException('Network error: $e');
     }
 
     if (res.statusCode == 400) {
       throw const ServerException(
-          'Gemini isteği reddetti (anahtar/model kontrol et)', 400);
+          'Gemini request rejected (check API key/model)', 400);
     }
     if (res.statusCode == 403 || res.statusCode == 401) {
       throw ServerException(
-          'API anahtarı geçersiz (kod ${res.statusCode})', res.statusCode);
+          'Invalid API key (code ${res.statusCode})', res.statusCode);
     }
     if (res.statusCode == 429) {
-      throw const ServerException('Limit doldu, biraz sonra dene', 429);
+      throw const ServerException('Rate limit reached, try again later', 429);
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw ServerException('Sunucu hatası (${res.statusCode})',
-          res.statusCode);
+      throw ServerException('Server error (${res.statusCode})', res.statusCode);
     }
 
     try {
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final candidates = body['candidates'] as List?;
       if (candidates == null || candidates.isEmpty) {
-        throw const FormatException('candidates boş');
+        throw const FormatException('candidates empty');
       }
-      final content =
-          candidates.first['content'] as Map<String, dynamic>?;
+      final content = candidates.first['content'] as Map<String, dynamic>?;
       final parts = content?['parts'] as List?;
       if (parts == null || parts.isEmpty) {
-        throw const FormatException('parts boş');
+        throw const FormatException('parts empty');
       }
       final text = parts
           .map((p) => (p as Map<String, dynamic>)['text'] as String? ?? '')
@@ -113,7 +111,7 @@ ${context.trim().isEmpty ? '' : 'Kullanıcı bağlamı: ${context.trim()}\n'}
       return _parseBundle(text);
     } catch (e) {
       if (e is ServerException) rethrow;
-      throw ServerException('AI cevabı çözülemedi: $e');
+      throw ServerException('Could not parse AI response: $e');
     }
   }
 
@@ -122,7 +120,7 @@ ${context.trim().isEmpty ? '' : 'Kullanıcı bağlamı: ${context.trim()}\n'}
     final start = text.indexOf('{');
     final end = text.lastIndexOf('}');
     if (start < 0 || end <= start) {
-      throw const FormatException('JSON gövde bulunamadı');
+      throw const FormatException('JSON body not found');
     }
     final decoded =
         jsonDecode(text.substring(start, end + 1)) as Map<String, dynamic>;
@@ -145,7 +143,7 @@ ${context.trim().isEmpty ? '' : 'Kullanıcı bağlamı: ${context.trim()}\n'}
     final daily = parseList(decoded['daily'], 'daily');
     final weekly = parseList(decoded['weekly'], 'weekly');
     if (daily.isEmpty && weekly.isEmpty) {
-      throw const FormatException('Görev listesi boş');
+      throw const FormatException('Quest list is empty');
     }
     return QuestBundle(
       daily: daily,

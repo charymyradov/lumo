@@ -5,24 +5,27 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
+import 'package:lumo/core/di/injection.dart';
+import 'package:lumo/core/repositories/wallet_repository.dart';
+import 'package:lumo/core/services/haptic_service.dart';
 import 'package:lumo/features/tasks/domain/entities/quest.dart';
-import 'package:lumo/features/tasks/presentation/cubit/quest_cubit.dart';
-import 'package:lumo/features/tasks/presentation/cubit/quest_state.dart';
+import 'package:lumo/features/tasks/presentation/bloc/quest_bloc.dart';
+import 'package:lumo/features/tasks/presentation/bloc/quest_event.dart';
+import 'package:lumo/features/tasks/presentation/bloc/quest_state.dart';
 import 'package:lumo/features/tasks/presentation/widgets/quest_visuals.dart';
 import 'package:lumo/features/tasks/presentation/widgets/streak_banner.dart';
 import 'package:lumo/features/tasks/presentation/widgets/task_card.dart';
 import 'package:lumo/shared/widgets/segmented_tabs.dart';
 
 /// Görevler sayfası — liste Gemini AI'dan gelir.
-/// Anahtar yoksa / çevrimdışıyken önbellek + yerleşik liste gösterilir;
-/// kart tasarımı ve sekmeler eskisiyle aynı.
+/// Tüm etkileşim Bloc Event ile.
 class TasksPage extends StatelessWidget {
   const TasksPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => QuestCubit()..load(),
+      create: (_) => sl<QuestBloc>()..add(const QuestLoadRequested()),
       child: const _TasksView(),
     );
   }
@@ -36,12 +39,25 @@ class _TasksView extends StatefulWidget {
 }
 
 class _TasksViewState extends State<_TasksView> {
-  static const List<String> _tabs = ['Günlük', 'Haftalık', 'Özel'];
+  static const List<String> _tabs = ['Daily', 'Weekly', 'Custom'];
 
   int _selectedTab = 0;
-  final Set<String> _completedIds = {};
+  int _streak = 7;
 
   bool get _isWeekly => _selectedTab == 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStreak();
+  }
+
+  Future<void> _loadStreak() async {
+    // Streak rozeti cüzdan reposundan — görev tamamlama seti Bloc'ta.
+    final wallet = await sl<WalletRepository>().load();
+    if (!mounted) return;
+    setState(() => _streak = wallet.streak);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,14 +136,14 @@ class _TasksViewState extends State<_TasksView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Görevler',
+                'Tasks',
                 style: AppText.nunito(
                   fontSize: 23,
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary,
                 ),
               ),
-              BlocBuilder<QuestCubit, QuestState>(
+              BlocBuilder<QuestBloc, QuestState>(
                 buildWhen: (p, c) => c is QuestLoaded,
                 builder: (context, state) {
                   if (state is! QuestLoaded) {
@@ -137,15 +153,14 @@ class _TasksViewState extends State<_TasksView> {
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       switch (state.bundle.source) {
-                        QuestSource.fresh => '✨ Yapay zekâ ile hazırlandı',
-                        QuestSource.cache => 'Önbellekten gösteriliyor',
-                        QuestSource.fallback => 'Hazır liste',
+                        QuestSource.fresh => '✨ Generated with AI',
+                        QuestSource.cache => 'Showing from cache',
+                        QuestSource.fallback => 'Built-in list',
                       },
                       style: AppText.nunito(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary
-                            .withValues(alpha: 0.85),
+                        color: AppColors.textSecondary.withValues(alpha: 0.85),
                       ),
                     ),
                   );
@@ -154,14 +169,16 @@ class _TasksViewState extends State<_TasksView> {
             ],
           ),
         ),
-        BlocBuilder<QuestCubit, QuestState>(
+        BlocBuilder<QuestBloc, QuestState>(
           builder: (context, state) {
             final busy = state is QuestLoading;
             return IconButton(
               onPressed: busy
                   ? null
-                  : () => context.read<QuestCubit>().refresh(),
-              tooltip: 'Görevleri yenile',
+                  : () => context
+                      .read<QuestBloc>()
+                      .add(const QuestRefreshRequested()),
+              tooltip: 'Refresh quests',
               icon: busy
                   ? const SizedBox(
                       width: 20,
@@ -181,16 +198,34 @@ class _TasksViewState extends State<_TasksView> {
   }
 
   Widget _buildQuestList() {
-    return BlocConsumer<QuestCubit, QuestState>(
-      listenWhen: (p, c) => c is QuestLoaded && c.notice != null,
+    return BlocConsumer<QuestBloc, QuestState>(
+      listenWhen: (p, c) {
+        if (c is QuestError) return true;
+        if (c is QuestLoaded) {
+          // notice ilk yüklemede, reward her toggle'da gösterilir.
+          final prevReward = p is QuestLoaded ? p.rewardMessage : null;
+          return c.notice != null && p is! QuestLoaded ||
+              (c.rewardMessage != null && c.rewardMessage != prevReward);
+        }
+        return false;
+      },
       listener: (context, state) {
-        final notice = (state as QuestLoaded).notice;
-        if (notice == null) return;
+        final message = switch (state) {
+          QuestLoaded(:final rewardMessage?) when rewardMessage.isNotEmpty =>
+            rewardMessage,
+          QuestLoaded(:final notice?) => notice,
+          QuestError(:final message) => message,
+          _ => null,
+        };
+        if (message == null) return;
+        if (state is QuestLoaded && state.rewardMessage != null) {
+          HapticService.success();
+        }
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: Text(notice),
+              content: Text(message),
               duration: const Duration(seconds: 3),
               behavior: SnackBarBehavior.floating,
             ),
@@ -200,9 +235,33 @@ class _TasksViewState extends State<_TasksView> {
         final bundle = switch (state) {
           QuestLoaded(:final bundle) => bundle,
           QuestLoading(:final current?) => current,
+          QuestError(:final current?) => current,
           _ => null,
         };
+        final completedIds = switch (state) {
+          QuestLoaded(:final completedIds) => completedIds,
+          _ => const <String>{},
+        };
         if (bundle == null) {
+          if (state is QuestError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_off_rounded, size: 44),
+                  const SizedBox(height: 12),
+                  Text(state.message),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => context
+                        .read<QuestBloc>()
+                        .add(const QuestLoadRequested()),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
           return const Center(
             child: CircularProgressIndicator(),
           );
@@ -210,9 +269,8 @@ class _TasksViewState extends State<_TasksView> {
 
         final tasks = _isWeekly ? bundle.weekly : bundle.daily;
         final doneCount =
-            tasks.where((q) => _completedIds.contains(q.id)).length;
-        final progress =
-            tasks.isEmpty ? 0.0 : doneCount / tasks.length;
+            tasks.where((q) => completedIds.contains(q.id)).length;
+        final progress = tasks.isEmpty ? 0.0 : doneCount / tasks.length;
 
         return ListView(
           physics: const BouncingScrollPhysics(),
@@ -229,12 +287,12 @@ class _TasksViewState extends State<_TasksView> {
                   duration: task.duration,
                   icon: visual.icon,
                   iconColor: visual.color,
-                  completed: _completedIds.contains(task.id),
-                  onTap: () => _toggleTask(task.id),
+                  completed: completedIds.contains(task.id),
+                  onTap: () => _toggleTask(context, task),
                 ),
               );
             }),
-            StreakBanner(days: 7, reward: 100, progress: progress),
+            StreakBanner(days: _streak, reward: 100, progress: progress),
             const SizedBox(height: 100),
           ],
         );
@@ -268,7 +326,7 @@ class _TasksViewState extends State<_TasksView> {
           ),
           const SizedBox(height: 18),
           Text(
-            'Henüz özel görev yok',
+            'No custom quests yet',
             style: AppText.nunito(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -277,7 +335,7 @@ class _TasksViewState extends State<_TasksView> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Kendine özel görevler oluşturabileceksin.',
+            'Daily and Weekly quests cover your goals for now.',
             textAlign: TextAlign.center,
             style: AppText.nunito(
               fontSize: 14,
@@ -290,11 +348,9 @@ class _TasksViewState extends State<_TasksView> {
     );
   }
 
-  void _toggleTask(String id) {
-    setState(() {
-      if (!_completedIds.add(id)) {
-        _completedIds.remove(id);
-      }
-    });
+  void _toggleTask(BuildContext context, Quest task) {
+    // Ekonomi Bloc'ta — Widget sadece Event gönderir + haptic başlatır.
+    HapticService.selection();
+    context.read<QuestBloc>().add(QuestTaskToggled(task));
   }
 }

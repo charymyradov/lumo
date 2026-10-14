@@ -9,9 +9,11 @@ class GetAiQuests {
 
   Future<QuestBundle> call(
       {bool forceRefresh = false,
-      String context = '',
+      String promptContext = '',
       String profileKey = ''}) {
     return _repository.getQuests(
-        forceRefresh: forceRefresh, context: context, profileKey: profileKey);
+        forceRefresh: forceRefresh,
+        promptContext: promptContext,
+        profileKey: profileKey);
   }
 }

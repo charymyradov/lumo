@@ -19,15 +19,19 @@ class AchievementItem {
 
 const List<AchievementItem> profileAchievements = [
   AchievementItem(
-      label: 'Yeni', emoji: '🏅', colors: [Color(0xFFFFD45E), Color(0xFFF0A828)]),
+      label: 'New',
+      emoji: '🏅',
+      colors: [Color(0xFFFFD45E), Color(0xFFF0A828)]),
   AchievementItem(
-      label: '7 Gün', emoji: '⭐', colors: [Color(0xFFFFE066), Color(0xFFFFB300)]),
+      label: '7 Days',
+      emoji: '⭐',
+      colors: [Color(0xFFFFE066), Color(0xFFFFB300)]),
   AchievementItem(
-      label: '30 Gün',
+      label: '30 Days',
       emoji: '🎖️',
       colors: [Color(0xFF8FA3BF), Color(0xFF5D6B8A)]),
   AchievementItem(
-      label: '100 Gün',
+      label: '100 Days',
       emoji: '🏆',
       colors: [Color(0xFFFF9A6B), Color(0xFFFF6B35)]),
 ];
@@ -47,7 +51,7 @@ class AchievementsGrid extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Başarımlar',
+                  'Achievements',
                   style: AppText.nunito(
                     fontSize: 16.5,
                     fontWeight: FontWeight.w800,
@@ -82,8 +86,7 @@ class AchievementsGrid extends StatelessWidget {
                             end: Alignment.bottomRight,
                             colors: a.colors,
                           ),
-                          border:
-                              Border.all(color: Colors.white, width: 2),
+                          border: Border.all(color: Colors.white, width: 2),
                           boxShadow: [
                             BoxShadow(
                               color: a.colors.last.withValues(alpha: 0.35),

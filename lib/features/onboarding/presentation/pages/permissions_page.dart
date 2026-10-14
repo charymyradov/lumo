@@ -5,8 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/router/main_shell.dart';
+import 'package:lumo/core/di/injection.dart';
+import 'package:lumo/core/repositories/user_profile_repository.dart';
 import 'package:lumo/core/services/app_prefs.dart';
-import 'package:lumo/core/services/user_profile_store.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_event.dart';
 import 'package:lumo/features/onboarding/presentation/widgets/onboarding_background.dart';
@@ -97,7 +98,7 @@ class _PermissionsPageState extends State<PermissionsPage>
                             child: Column(
                               children: [
                                 Text(
-                                  "İzinlere izin ver",
+                                  "Allow permissions",
                                   style: AppText.nunito(
                                     fontSize: 26,
                                     fontWeight: FontWeight.w900,
@@ -134,17 +135,15 @@ class _PermissionsPageState extends State<PermissionsPage>
                       ),
                       const SizedBox(height: 32),
                       LumoContinueButton(
-                        label: 'Devam Et',
+                        label: 'Continue',
                         onTap: () async {
                           // Profil (isim, hedefler, maskot) kalıcı saklanır —
                           // home selamlaması ve AI görevler bunları kullanır.
-                          final obState =
-                              context.read<OnboardingBloc>().state;
-                          await UserProfileStore.save(
+                          final obState = context.read<OnboardingBloc>().state;
+                          await sl<UserProfileRepository>().save(
                             name: obState.name,
                             goals: obState.selectedGoals,
-                            mascotIndex:
-                                obState.selectedMascotIndex,
+                            mascotIndex: obState.selectedMascotIndex,
                           );
 
                           // Complete onboarding logic

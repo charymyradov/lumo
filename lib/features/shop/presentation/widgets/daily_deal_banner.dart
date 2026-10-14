@@ -14,17 +14,25 @@ class DailyDealBanner extends StatefulWidget {
 }
 
 class _DailyDealBannerState extends State<DailyDealBanner> {
-  static const _total = Duration(hours: 12, minutes: 34, seconds: 56);
   late Duration _left;
   Timer? _timer;
+
+  /// Gece yarısına kadar kalan süre — her açılışta gerçek, her gün yenilenir.
+  Duration _untilMidnight() {
+    final now = DateTime.now();
+    final midnight = DateTime(now.year, now.month, now.day + 1);
+    return midnight.difference(now);
+  }
 
   @override
   void initState() {
     super.initState();
-    _left = _total;
+    _left = _untilMidnight();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_left.inSeconds <= 0) return;
-      setState(() => _left = _left - const Duration(seconds: 1));
+      if (!mounted) return;
+      final left = _untilMidnight();
+      if (left.inSeconds <= 0) return;
+      setState(() => _left = left);
     });
   }
 
@@ -58,7 +66,7 @@ class _DailyDealBannerState extends State<DailyDealBanner> {
             children: [
               Expanded(
                 child: Text(
-                  'Günlük İndirim',
+                  'Daily Deal',
                   style: AppText.nunito(
                     fontSize: 16.5,
                     fontWeight: FontWeight.w800,

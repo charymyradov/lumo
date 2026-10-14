@@ -1,19 +1,8 @@
-/// Yapay zekâ (Gemini) yapılandırması.
-///
-/// ## API anahtarı nasıl eklenir?
-///
-/// **Önerilen:** anahtarı koda gömmek yerine derleme anında ver —
-/// koda yazılan anahtar git'e düşer ve çalınabilir:
-/// ```
-/// flutter run --dart-define=GEMINI_API_KEY=AIza...senin_anahtarin
-/// ```
-///
-/// **Pratik yol:** aşağıdaki [_embeddedKey] sabitine anahtarını yapıştır.
-/// Anahtar yoksa uygulama çökmez; görevler yerleşik listeden + önbellekten gelir.
 class AiConfig {
   AiConfig._();
 
-  static const String _embeddedKey = 'BURAYA_GEMINI_API_KEY_YAZ';
+  static const String _embeddedKey =
+      'AQ.Ab8RN6I9mGrK05cZTiiHxbo77Qd6G3vqcWDcnvVcJfSqO98Cig';
 
   /// Önce `--dart-define=GEMINI_API_KEY`, yoksa gömülü sabit kullanılır.
   static String get geminiApiKey {
@@ -26,7 +15,7 @@ class AiConfig {
   static bool get hasGeminiKey => geminiApiKey.isNotEmpty;
 
   /// Hızlı + ucuz JSON üretimi için Flash modeli.
-  static const String geminiModel = 'gemini-2.0-flash';
+  static const String geminiModel = 'gemini-2.5-flash';
 
   static String get geminiEndpoint =>
       'https://generativelanguage.googleapis.com/v1beta/models/$geminiModel:generateContent';

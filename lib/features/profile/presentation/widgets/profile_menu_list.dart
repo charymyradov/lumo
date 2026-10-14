@@ -24,11 +24,11 @@ class ProfileMenuList extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _tile(Icons.group_outlined, 'Arkadaşlar', onFriends),
+          _tile(Icons.group_outlined, 'Friends', onFriends),
           _divider(),
-          _tile(Icons.card_giftcard_outlined, 'Davet Kodu', onInviteCode),
+          _tile(Icons.card_giftcard_outlined, 'Invite Code', onInviteCode),
           _divider(),
-          _tile(Icons.settings_outlined, 'Ayarlar', onSettings),
+          _tile(Icons.settings_outlined, 'Settings', onSettings),
         ],
       ),
     );

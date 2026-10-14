@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lumo/core/constants/app_text.dart';
+import 'package:lumo/core/constants/app_typography.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 
 class GoalOptionTile extends StatelessWidget {
@@ -57,8 +57,7 @@ class GoalOptionTile extends StatelessWidget {
             const SizedBox(width: 14),
             Text(
               label,
-              style: AppText.nunito(
-                fontSize: 16,
+              style: AppTypography.bodyLarge.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),

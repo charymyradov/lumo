@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/app_text.dart';
+import 'package:lumo/core/constants/asset_paths.dart';
 
 /// A single destination of [LumoBottomNav].
 class LumoNavItem {
@@ -13,11 +14,11 @@ class LumoNavItem {
 }
 
 const List<LumoNavItem> lumoNavItems = [
-  LumoNavItem(label: 'Yaşam', asset: 'assets/navbar/home.png'),
-  LumoNavItem(label: 'Görevler', asset: 'assets/navbar/checklist.png'),
-  LumoNavItem(label: 'Günlük', asset: 'assets/navbar/journal.png'),
-  LumoNavItem(label: 'Mağaza', asset: 'assets/navbar/shopping-cart.png'),
-  LumoNavItem(label: 'Profil', asset: 'assets/navbar/user.png'),
+  LumoNavItem(label: 'Home', asset: AssetPaths.navHome),
+  LumoNavItem(label: 'Tasks', asset: AssetPaths.navTasks),
+  LumoNavItem(label: 'Journal', asset: AssetPaths.navJournal),
+  LumoNavItem(label: 'Shop', asset: AssetPaths.navShop),
+  LumoNavItem(label: 'Profile', asset: AssetPaths.navProfile),
 ];
 
 /// Sade floating cam alt bar.
@@ -66,15 +67,13 @@ class LumoBottomNav extends StatelessWidget {
               height: 66,
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final itemWidth =
-                      constraints.maxWidth / lumoNavItems.length;
+                  final itemWidth = constraints.maxWidth / lumoNavItems.length;
 
                   return Stack(
                     children: [
                       // ── Seçili hap (sade, düz renk) ──
                       AnimatedPositioned(
-                        duration:
-                            const Duration(milliseconds: 350),
+                        duration: const Duration(milliseconds: 350),
                         curve: Curves.easeInOutCubic,
                         left: currentIndex * itemWidth + 6,
                         width: itemWidth - 12,
@@ -82,57 +81,42 @@ class LumoBottomNav extends StatelessWidget {
                         bottom: 7,
                         child: Container(
                           decoration: BoxDecoration(
-                            borderRadius:
-                                BorderRadius.circular(19),
-                            color: AppColors.primary
-                                .withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(19),
+                            color: AppColors.primary.withValues(alpha: 0.14),
                           ),
                         ),
                       ),
 
                       // ── Öğeler ──
                       Row(
-                        children: List.generate(
-                            lumoNavItems.length, (index) {
+                        children: List.generate(lumoNavItems.length, (index) {
                           final item = lumoNavItems[index];
-                          final selected =
-                              index == currentIndex;
+                          final selected = index == currentIndex;
                           final fgColor = selected
                               ? AppColors.primary
-                              : const Color(0xFF5D6470)
-                                  .withValues(alpha: 0.8);
+                              : const Color(0xFF5D6470).withValues(alpha: 0.8);
 
                           return Expanded(
                             child: InkWell(
                               onTap: () => onTap(index),
-                              splashFactory:
-                                  NoSplash.splashFactory,
-                              highlightColor:
-                                  Colors.transparent,
-                              borderRadius:
-                                  BorderRadius.circular(19),
+                              splashFactory: NoSplash.splashFactory,
+                              highlightColor: Colors.transparent,
+                              borderRadius: BorderRadius.circular(19),
                               child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
-                                mainAxisSize:
-                                    MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.max,
                                 children: [
                                   AnimatedScale(
-                                    scale:
-                                        selected ? 1.1 : 1.0,
-                                    duration: const Duration(
-                                        milliseconds: 300),
+                                    scale: selected ? 1.1 : 1.0,
+                                    duration: const Duration(milliseconds: 300),
                                     curve: Curves.easeInOutCubic,
                                     child: Image.asset(
                                       item.asset,
                                       width: 22,
                                       height: 22,
                                       color: fgColor,
-                                      colorBlendMode:
-                                          BlendMode.srcIn,
-                                      errorBuilder: (_,
-                                              __, ___) =>
-                                          Icon(
+                                      colorBlendMode: BlendMode.srcIn,
+                                      errorBuilder: (_, __, ___) => Icon(
                                         Icons.circle,
                                         size: 22,
                                         color: fgColor,
@@ -141,8 +125,7 @@ class LumoBottomNav extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   AnimatedDefaultTextStyle(
-                                    duration: const Duration(
-                                        milliseconds: 300),
+                                    duration: const Duration(milliseconds: 300),
                                     curve: Curves.easeInOut,
                                     style: AppText.nunito(
                                       fontSize: 11.5,

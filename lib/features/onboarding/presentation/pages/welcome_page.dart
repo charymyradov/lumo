@@ -135,6 +135,8 @@ class _WelcomePageState extends State<WelcomePage>
                                 TextField(
                                   controller: _nameController,
                                   textCapitalization: TextCapitalization.words,
+                                  onTapOutside: (_) =>
+                                      FocusScope.of(context).unfocus(),
                                   onChanged: (val) => context
                                       .read<OnboardingBloc>()
                                       .add(OnboardingNameChanged(val)),

@@ -6,5 +6,7 @@ import 'package:lumo/features/tasks/domain/entities/quest.dart';
 /// önbellek geçersiz sayılır ve taze liste çekilir.
 abstract class QuestRepository {
   Future<QuestBundle> getQuests(
-      {bool forceRefresh = false, String context = '', String profileKey = ''});
+      {bool forceRefresh = false,
+      String promptContext = '',
+      String profileKey = ''});
 }

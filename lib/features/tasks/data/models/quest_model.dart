@@ -16,7 +16,7 @@ class QuestModel extends Quest {
   factory QuestModel.fromJson(Map<String, dynamic> json, String fallbackId) {
     final title = (json['title'] as String? ?? '').trim();
     if (title.isEmpty) {
-      throw const FormatException('Quest başlığı boş');
+      throw const FormatException('Quest title is empty');
     }
     final rawReward = json['reward'];
     final reward = switch (rawReward) {
@@ -32,7 +32,7 @@ class QuestModel extends Quest {
       title: title.length > 48 ? '${title.substring(0, 47)}…' : title,
       subtitle: ((json['subtitle'] as String?) ?? '').trim(),
       reward: reward.clamp(5, 100),
-      duration: ((json['duration'] as String?) ?? '10 dk').trim(),
+      duration: ((json['duration'] as String?) ?? '10 min').trim(),
       category: _normalizeCategory(json['category'] as String?),
     );
   }

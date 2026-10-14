@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Gemini AI görevleri için ağ erişimi -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <application
-        android:label="lumo"
+        android:label="Lumo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -48,8 +48,8 @@ class MascotCarousel extends StatelessWidget {
         // Selected mascot hero display
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 350),
-          transitionBuilder: (child, anim) =>
-              FadeTransition(opacity: anim, child: ScaleTransition(scale: anim, child: child)),
+          transitionBuilder: (child, anim) => FadeTransition(
+              opacity: anim, child: ScaleTransition(scale: anim, child: child)),
           child: SizedBox(
             key: ValueKey(selectedIndex),
             width: 180,
@@ -107,7 +107,8 @@ class MascotCarousel extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected ? AppColors.primary : Colors.transparent,
+                      color:
+                          isSelected ? AppColors.primary : Colors.transparent,
                       width: 2.5,
                     ),
                     color: isSelected
@@ -142,5 +143,6 @@ class MascotData {
   final String path;
   final String name;
   final String traits;
-  const MascotData({required this.path, required this.name, required this.traits});
+  const MascotData(
+      {required this.path, required this.name, required this.traits});
 }

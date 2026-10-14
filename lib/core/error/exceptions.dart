@@ -1,5 +1,5 @@
 /// Uygulama genelinde yakalanan düşük seviye hatalar.
-/// Katmanlar bunları fırlatır, cubit/bloc kullanıcı dostu mesaja çevirir.
+/// Katmanlar bunları fırlatır, bloc kullanıcı dostu mesaja çevirir.
 class ServerException implements Exception {
   final String message;
   final int? statusCode;
@@ -13,7 +13,7 @@ class ServerException implements Exception {
 class CacheException implements Exception {
   final String message;
 
-  const CacheException([this.message = 'Önbellek okunamadı']);
+  const CacheException([this.message = 'Could not read cache']);
 
   @override
   String toString() => 'CacheException: $message';
@@ -24,5 +24,5 @@ class MissingApiKeyException implements Exception {
 
   @override
   String toString() =>
-      'MissingApiKeyException: Gemini API anahtarı tanımlı değil';
+      'MissingApiKeyException: Gemini API key is not configured';
 }

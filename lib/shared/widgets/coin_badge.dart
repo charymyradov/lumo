@@ -19,7 +19,8 @@ class CoinBadge extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [Color(0xFFFFD45E), Color(0xFFF0A828)],
         ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1.2),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFFF0A828).withValues(alpha: 0.4),
@@ -45,10 +46,11 @@ class CoinReward extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.25),
+        // Opak hap: parlak gökyüzünde de okunur, cam değil.
+        color: Colors.black.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: Colors.white.withValues(alpha: 0.25),
           width: 1,
         ),
       ),
@@ -64,7 +66,11 @@ class CoinReward extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFFFE066), Color(0xFFFFC107), Color(0xFFE6A100)],
+                colors: [
+                  Color(0xFFFFE066),
+                  Color(0xFFFFC107),
+                  Color(0xFFE6A100)
+                ],
               ),
               boxShadow: [
                 BoxShadow(

@@ -15,11 +15,11 @@ class MoodOption {
 }
 
 const List<MoodOption> journalMoods = [
-  MoodOption(label: 'Mükemmel', emoji: '😊', color: Color(0xFF8A5CF5)),
-  MoodOption(label: 'İyi', emoji: '🙂', color: Color(0xFFFFC93C)),
+  MoodOption(label: 'Great', emoji: '😊', color: Color(0xFF8A5CF5)),
+  MoodOption(label: 'Good', emoji: '🙂', color: Color(0xFFFFC93C)),
   MoodOption(label: 'Normal', emoji: '😐', color: Color(0xFFF5B97F)),
-  MoodOption(label: 'Kötü', emoji: '🙁', color: Color(0xFFF2607A)),
-  MoodOption(label: 'Çok Kötü', emoji: '😢', color: Color(0xFF93A5C4)),
+  MoodOption(label: 'Bad', emoji: '🙁', color: Color(0xFFF2607A)),
+  MoodOption(label: 'Very Bad', emoji: '😢', color: Color(0xFF93A5C4)),
 ];
 
 /// Yatay 5'li ruh hali seçici — görseldeki gibi dairesel emoji balonları.
@@ -63,19 +63,23 @@ class MoodSelector extends StatelessWidget {
                       ],
                     ),
                     border: Border.all(
-                      color: selected ? Colors.white : Colors.white.withValues(alpha: 0.7),
+                      color: selected
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.7),
                       width: selected ? 2.5 : 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: mood.color.withValues(alpha: selected ? 0.45 : 0.25),
+                        color: mood.color
+                            .withValues(alpha: selected ? 0.45 : 0.25),
                         blurRadius: selected ? 16 : 10,
                         offset: const Offset(0, 5),
                       ),
                     ],
                   ),
                   child: Center(
-                    child: Text(mood.emoji, style: const TextStyle(fontSize: 28)),
+                    child:
+                        Text(mood.emoji, style: const TextStyle(fontSize: 28)),
                   ),
                 ),
                 const SizedBox(height: 6),

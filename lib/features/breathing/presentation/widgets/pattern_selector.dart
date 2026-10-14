@@ -13,7 +13,7 @@ class PatternSelector extends StatelessWidget {
     required this.onChanged,
   });
 
-  static const labels = ['4-7-8', 'Kutu Nefes', 'Derin Nefes'];
+  static const labels = ['4-7-8', 'Box Breathing', 'Deep Breathing'];
 
   @override
   Widget build(BuildContext context) {

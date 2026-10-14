@@ -40,7 +40,7 @@ class ProfileHeader extends StatelessWidget {
                 ),
               ),
               child: const Center(
-                child: Text('👧', style: TextStyle(fontSize: 60)),
+                child: Text('👦', style: TextStyle(fontSize: 60)),
               ),
             ),
             Positioned(
@@ -79,7 +79,7 @@ class ProfileHeader extends StatelessWidget {
           ),
         ),
         Text(
-          'Seviye $level',
+          'Level $level',
           style: AppText.nunito(
             fontSize: 15,
             fontWeight: FontWeight.w700,

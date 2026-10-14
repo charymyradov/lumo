@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lumo/features/home/domain/entities/mascot_species.dart';
 import 'package:lumo/features/home/domain/entities/pet_action_state.dart';
+import 'package:lumo/features/home/presentation/extensions/home_entities_ui.dart';
 import 'package:lumo/features/home/presentation/pet/pet_simulation.dart';
 
 /// Procedural, fully vector pet renderer.
@@ -28,13 +29,21 @@ class PetStagePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    _PetStageRenderer(canvas: canvas, size: size, sim: sim, species: species, flags: flags, isNight: isNight)
+    _PetStageRenderer(
+            canvas: canvas,
+            size: size,
+            sim: sim,
+            species: species,
+            flags: flags,
+            isNight: isNight)
         .render();
   }
 
   @override
   bool shouldRepaint(covariant PetStagePainter oldDelegate) {
-    return oldDelegate.species != species || oldDelegate.flags != flags || oldDelegate.isNight != isNight;
+    return oldDelegate.species != species ||
+        oldDelegate.flags != flags ||
+        oldDelegate.isNight != isNight;
   }
 }
 
@@ -79,7 +88,8 @@ class _PetStageRenderer {
 
   bool get _isSleeping => sim.locomotionMode == PetActionState.sleep;
   bool get _isPetted => sim.locomotionMode == PetActionState.petted;
-  bool get _isEating => sim.locomotionMode == PetActionState.eat ||
+  bool get _isEating =>
+      sim.locomotionMode == PetActionState.eat ||
       sim.locomotionMode == PetActionState.drink;
   bool get _isDancing => sim.locomotionMode == PetActionState.dance;
 
@@ -102,7 +112,8 @@ class _PetStageRenderer {
     canvas.restore();
   }
 
-  void _translateScale(double dx, double dy, double sx, double sy, void Function() draw) {
+  void _translateScale(
+      double dx, double dy, double sx, double sy, void Function() draw) {
     canvas.save();
     canvas.translate(dx, dy);
     canvas.scale(sx, sy);
@@ -110,7 +121,8 @@ class _PetStageRenderer {
     canvas.restore();
   }
 
-  void _oval(Color color, double left, double top, double width, double height) {
+  void _oval(
+      Color color, double left, double top, double width, double height) {
     canvas.drawOval(Rect.fromLTWH(left, top, width, height), _fill(color));
   }
 
@@ -131,7 +143,8 @@ class _PetStageRenderer {
   }
 
   void _softBlush(double cx, double cy, double size, double alpha) {
-    final rect = Rect.fromCenter(center: Offset(cx, cy), width: size, height: size * 0.62);
+    final rect = Rect.fromCenter(
+        center: Offset(cx, cy), width: size, height: size * 0.62);
     canvas.drawOval(
       rect,
       Paint()
@@ -145,12 +158,14 @@ class _PetStageRenderer {
     );
   }
 
-  void _strokeOval(
-      Color color, double left, double top, double width, double height, double strokeWidth) {
-    canvas.drawOval(Rect.fromLTWH(left, top, width, height), _stroke(color, strokeWidth));
+  void _strokeOval(Color color, double left, double top, double width,
+      double height, double strokeWidth) {
+    canvas.drawOval(
+        Rect.fromLTWH(left, top, width, height), _stroke(color, strokeWidth));
   }
 
-  void _roundRect(Color color, double left, double top, double width, double height, double radius) {
+  void _roundRect(Color color, double left, double top, double width,
+      double height, double radius) {
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(left, top, width, height),
@@ -171,9 +186,7 @@ class _PetStageRenderer {
     required bool useCenter,
     double strokeWidth = 0,
   }) {
-    final paint = strokeWidth > 0
-        ? _stroke(color, strokeWidth)
-        : _fill(color);
+    final paint = strokeWidth > 0 ? _stroke(color, strokeWidth) : _fill(color);
     canvas.drawArc(
       Rect.fromLTWH(left, top, width, height),
       startAngle * math.pi / 180,
@@ -207,14 +220,12 @@ class _PetStageRenderer {
       );
     }
 
-    final dist = (Offset(sim.targetX, sim.targetY) - Offset(sim.petX, sim.petY)).distance;
+    final dist = (Offset(sim.targetX, sim.targetY) - Offset(sim.petX, sim.petY))
+        .distance;
     final isMoving = dist > 0.016 && sim.locomotionMode != PetActionState.sleep;
-    final isRunning =
-        isRunningLocomotion(dist);
+    final isRunning = isRunningLocomotion(dist);
 
-    final depthScale = clampDouble(0.92 + (sim.petY - 0.58) * 1.35, 0.9, 1.35);
-    final jumpSin =
-        sim.jumpPhase > 0 ? math.sin(sim.jumpPhase * math.pi) : 0.0;
+    final jumpSin = sim.jumpPhase > 0 ? math.sin(sim.jumpPhase * math.pi) : 0.0;
     final jumpHeightPx = jumpSin * (_h * 0.11);
 
     final double squashX;
@@ -231,34 +242,43 @@ class _PetStageRenderer {
     final stretchY = 2 - squashX;
 
     final anchorX = sim.petX * _w;
-    final anchorY = sim.petY * _h;
+    // Derinlik ölçeği pet'in dikey konumundan gelir; önce onu çöz.
+    final depthScale = clampDouble(0.92 + (sim.petY - 0.58) * 1.35, 0.9, 1.35);
+    final baseScale = (_w / 1080) * 1.8 * depthScale;
+
+    // Lumi alt-ortada durur; alt bakım buton şeridi asla üstüne binmesin.
+    // 250 px: butonlar (~124) + alt nav payı (~92-118) + emniyet payı.
+    final uiStackTop = _h - 250;
+    final feetOffset = math.max(92 * baseScale, 74 * depthScale);
+    final anchorY = math.min(sim.petY * _h, uiStackTop - feetOffset);
 
     // Oval yumuşak zemin gölgesi: arka plandan ayrıştırır (rehber §5).
-    final shadowRadiusX = 78 * depthScale * (1 - jumpSin * 0.4);
-    final shadowRadiusY = 20 * depthScale * (1 - jumpSin * 0.4);
+    // Karakteri sahneye oturtmak için koyu ve geniş tutulur.
+    final shadowRadiusX = 92 * depthScale * (1 - jumpSin * 0.4);
+    final shadowRadiusY = 24 * depthScale * (1 - jumpSin * 0.4);
     _softShadowOval(
       anchorX - shadowRadiusX,
       anchorY + 48 * depthScale - shadowRadiusY,
       shadowRadiusX * 2,
       shadowRadiusY * 2,
-      const Color(0x401E1B4B),
+      const Color(0x661E1B4B),
     );
 
-    final baseScale = (_w / 1080) * 1.32 * depthScale;
     final facing = sim.smoothFacing >= 0 ? 1.0 : -1.0;
     final isDancing = sim.locomotionMode == PetActionState.dance;
     final strideBob = isMoving
         ? math.sin(sim.gaitPhase).abs() * (isRunning ? -16.0 : -9.0)
         : 0.0;
-    final danceBob =
-        isDancing ? math.sin(sim.timeSec * 10).abs() * -18.0 : 0.0;
+    final danceBob = isDancing ? math.sin(sim.timeSec * 10).abs() * -18.0 : 0.0;
 
     canvas.save();
     canvas.translate(anchorX, anchorY - jumpHeightPx + strideBob + danceBob);
     canvas.scale(baseScale * squashX * facing, baseScale * stretchY);
 
-    _drawPetTailAndWings(isMoving: isMoving, isRunning: isRunning, jumpSin: jumpSin);
-    _drawPetLimbsAndTorso(isMoving: isMoving, isRunning: isRunning, jumpSin: jumpSin);
+    _drawPetTailAndWings(
+        isMoving: isMoving, isRunning: isRunning, jumpSin: jumpSin);
+    _drawPetLimbsAndTorso(
+        isMoving: isMoving, isRunning: isRunning, jumpSin: jumpSin);
     _drawPetHeadAndFace(isRunning: isRunning, jumpSin: jumpSin);
 
     canvas.restore();
@@ -297,6 +317,10 @@ class _PetStageRenderer {
       _drawStarToyBall(sim.ballX * _w, sim.ballY * _h, sim.timeSec * 260);
     }
 
+    // Kafa üstü balon: sahne uzayında, pet'in ölçeğine göre konumlanır.
+    _drawSpeechBubble(anchorX, anchorY - jumpHeightPx + strideBob + danceBob,
+        baseScale * stretchY);
+
     _drawParticles();
   }
 
@@ -304,6 +328,77 @@ class _PetStageRenderer {
     return dist > 0.22 ||
         sim.locomotionMode == PetActionState.run ||
         sim.locomotionMode == PetActionState.playBall;
+  }
+
+  /// Lumi'nin kafasının üstünde beliren küçük konuşma balonu.
+  /// Ekran uzayında çizilir (pet'in büyümesinden etkilenmez), pet ile
+  /// birlikte hareket eder. [originY] çizim öncesi çevirmenin yapıldığı
+  /// taban çizgisi, [scaleY] pet'in dikey ölçeğidir.
+  void _drawSpeechBubble(double anchorX, double originY, double scaleY) {
+    final alpha = clampDouble(sim.speechAlpha, 0, 1);
+    if (alpha <= 0.01 || sim.speechText.isEmpty) return;
+
+    const maxWidth = 190.0;
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: sim.speechText,
+        style: const TextStyle(
+          fontFamily: 'Nunito',
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF1E2E3D),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 2,
+      ellipsis: '…',
+    )..layout(maxWidth: maxWidth);
+
+    const padH = 12.0;
+    const padV = 9.0;
+    final bubbleW = textPainter.width + padH * 2;
+    final bubbleH = textPainter.height + padV * 2;
+
+    // Kulak uçları yerel ~-170 birimde biter; balon onun üstünde durur.
+    final headTopY = originY - 195 * scaleY;
+    var bubbleX = anchorX - bubbleW / 2;
+    bubbleX = clampDouble(bubbleX, 12, _w - bubbleW - 12);
+    final bubbleY = (headTopY - bubbleH - 14).clamp(8.0, _h - bubbleH - 8);
+
+    final bubbleRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(bubbleX, bubbleY, bubbleW, bubbleH),
+      const Radius.circular(15),
+    );
+    // Konuşma kuyruğu: kafaya bakan küçük üçgen.
+    final tailTipX = (anchorX).clamp(bubbleX + 18, bubbleX + bubbleW - 18);
+    final tailPath = Path()
+      ..moveTo(tailTipX - 8, bubbleY + bubbleH - 1)
+      ..lineTo(tailTipX + 8, bubbleY + bubbleH - 1)
+      ..lineTo(tailTipX, bubbleY + bubbleH + 11)
+      ..close();
+
+    // Opak gövde (arka plan fotoğrafı okunmasın) + yumuşak gölge.
+    final bubblePaint = Paint()..color = Colors.white.withValues(alpha: alpha);
+    canvas.drawRRect(
+      bubbleRect,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.18 * alpha)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    canvas.drawPath(tailPath, bubblePaint);
+    canvas.drawRRect(bubbleRect, bubblePaint);
+    canvas.drawRRect(
+      bubbleRect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..color = const Color(0xFF7B5EA7).withValues(alpha: 0.45 * alpha),
+    );
+
+    textPainter.paint(
+      canvas,
+      Offset(bubbleX + padH, bubbleY + padV),
+    );
   }
 
   void _drawParticles() {
@@ -341,7 +436,10 @@ class _PetStageRenderer {
 
   // ── Tail & wings ─────────────────────────────────────────────────────────
 
-  void _drawPetTailAndWings({required bool isMoving, required bool isRunning, required double jumpSin}) {
+  void _drawPetTailAndWings(
+      {required bool isMoving,
+      required bool isRunning,
+      required double jumpSin}) {
     final tailSpeed = _isPetted || _isEating || _isDancing
         ? 9.0
         : isRunning
@@ -355,15 +453,22 @@ class _PetStageRenderer {
     // Follow-through: gövdeden gecikmeli kuyruk (rehber §6.5).
     // Uç segment bazdan ~0.35 sn geriden gelir.
     final baseSwing = math.sin(sim.timeSec * tailSpeed) *
-            (_isPetted || _isDancing ? 22.0 : _isSleeping ? 5.0 : 14.0);
+        (_isPetted || _isDancing
+            ? 22.0
+            : _isSleeping
+                ? 5.0
+                : 14.0);
     final tipLag = math.sin(sim.timeSec * tailSpeed - 0.7) *
         (_isPetted || _isDancing ? 14.0 : 9.0);
     final gaitSway = isMoving ? math.sin(sim.gaitPhase) * 5.0 : 0.0;
     final jumpKick = jumpSin * 18.0;
     final tailSwing = baseSwing + gaitSway + jumpKick;
-    final tailPivot = Offset(-50, _isSleeping ? 36.0 : 18.0);
+    // Kuyruk gövdeye içten bağlanır: pivot gövde sol kenarının içinde,
+    // tabana bindirme dairesi çizilir, kopukluk kalmaz.
+    final tailPivot = Offset(-44, _isSleeping ? 36.0 : 20.0);
 
     _rotate(_isSleeping ? -32 + tailSwing : 14 + tailSwing, tailPivot, () {
+      canvas.drawCircle(tailPivot, 26, _fill(_tailDeep));
       // Kalın kıvrımlı kuyruk: gradient gövde + dalgalı beyaz uç (rehber §3, §5).
       // Hedef-tahtası halka daireler kaldırıldı.
       final tailPath = Path()
@@ -440,8 +545,7 @@ class _PetStageRenderer {
     required double jumpSin,
   }) {
     // Nefes döngüsü 3.5 sn (rehber §6.2): 2π/3.5 ≈ 1.8 rad/sn.
-    final breathWave =
-        math.sin(sim.timeSec * (_isSleeping ? 1.4 : 1.8));
+    final breathWave = math.sin(sim.timeSec * (_isSleeping ? 1.4 : 1.8));
 
     final strideAmp = isRunning
         ? 32.0
@@ -457,21 +561,26 @@ class _PetStageRenderer {
     final flPhase = _isDancing ? sim.timeSec * 10 : gaitPhase;
     final brPhase = isRunning ? gaitPhase + math.pi * 0.85 : gaitPhase + 0.4;
     final frPhase = isRunning ? gaitPhase + 0.35 : gaitPhase + math.pi;
-    final blPhase = isRunning ? gaitPhase + math.pi * 1.15 : gaitPhase + math.pi + 0.4;
+    final blPhase =
+        isRunning ? gaitPhase + math.pi * 1.15 : gaitPhase + math.pi + 0.4;
 
     final activeStride = isMoving || _isDancing || jumpSin > 0.1;
     final frontLeftHip = activeStride ? math.sin(flPhase) * strideAmp : 0.0;
-    final frontLeftKnee =
-        activeStride ? math.max(0.0, math.cos(flPhase)) * (strideAmp * 0.75) : 0.0;
+    final frontLeftKnee = activeStride
+        ? math.max(0.0, math.cos(flPhase)) * (strideAmp * 0.75)
+        : 0.0;
     final frontRightHip = activeStride ? math.sin(frPhase) * strideAmp : 0.0;
-    final frontRightKnee =
-        activeStride ? math.max(0.0, math.cos(frPhase)) * (strideAmp * 0.75) : 0.0;
+    final frontRightKnee = activeStride
+        ? math.max(0.0, math.cos(frPhase)) * (strideAmp * 0.75)
+        : 0.0;
     final backLeftHip = activeStride ? math.sin(blPhase) * strideAmp : 0.0;
-    final backLeftKnee =
-        activeStride ? math.max(0.0, -math.cos(blPhase)) * (strideAmp * 0.7) : 0.0;
+    final backLeftKnee = activeStride
+        ? math.max(0.0, -math.cos(blPhase)) * (strideAmp * 0.7)
+        : 0.0;
     final backRightHip = activeStride ? math.sin(brPhase) * strideAmp : 0.0;
-    final backRightKnee =
-        activeStride ? math.max(0.0, -math.cos(brPhase)) * (strideAmp * 0.7) : 0.0;
+    final backRightKnee = activeStride
+        ? math.max(0.0, -math.cos(brPhase)) * (strideAmp * 0.7)
+        : 0.0;
 
     if (!_isSleeping) {
       _drawArticulatedLimb(
@@ -578,9 +687,12 @@ class _PetStageRenderer {
         _roundRect(const Color(0xFF8B5CF6), 28, 4, 20, 36, 8);
       }
       if (flags.hasRibbonBow) {
-        canvas.drawCircle(const Offset(22, 2), 14, _fill(const Color(0xFFF43F5E)));
-        canvas.drawCircle(const Offset(44, 2), 14, _fill(const Color(0xFFFB7185)));
-        canvas.drawCircle(const Offset(33, 2), 8, _fill(const Color(0xFFFDA4AF)));
+        canvas.drawCircle(
+            const Offset(22, 2), 14, _fill(const Color(0xFFF43F5E)));
+        canvas.drawCircle(
+            const Offset(44, 2), 14, _fill(const Color(0xFFFB7185)));
+        canvas.drawCircle(
+            const Offset(33, 2), 8, _fill(const Color(0xFFFDA4AF)));
       }
     });
 
@@ -684,8 +796,9 @@ class _PetStageRenderer {
     final earAmp = _isPetted || _isDancing ? 12.0 : 6.0;
     final leftEarAngle =
         -16 + math.sin(sim.timeSec * earSpeed) * earAmp - (isRunning ? 10 : 0);
-    final rightEarAngle =
-        16 - math.cos(sim.timeSec * earSpeed + 0.7) * earAmp + (isRunning ? 10 : 0);
+    final rightEarAngle = 16 -
+        math.cos(sim.timeSec * earSpeed + 0.7) * earAmp +
+        (isRunning ? 10 : 0);
 
     // Baş-gövde örtüşmesi artırıldı: ayrı sticker gibi durmasın (rehber §2).
     final headPivot = Offset(14, _isSleeping ? 4.0 : -18.0);
@@ -785,7 +898,8 @@ class _PetStageRenderer {
       _softBlush(hcX - 46, hcY + 16, 34, blushAlpha);
       _softBlush(hcX + 48, hcY + 16, 34, blushAlpha);
 
-      _drawPetEyesAndMouth(hcX: hcX, hcY: hcY, isRunning: isRunning, jumpSin: jumpSin);
+      _drawPetEyesAndMouth(
+          hcX: hcX, hcY: hcY, isRunning: isRunning, jumpSin: jumpSin);
       _drawPetHeadCosmetics(hcX: hcX, hcY: hcY);
     });
   }
@@ -799,7 +913,8 @@ class _PetStageRenderer {
     // Bebek şeması: gözler geniş aralıklı, yüzün alt yarısında (rehber §4).
     final leftEyeCenter = Offset(hcX - 30, hcY + 8);
     final rightEyeCenter = Offset(hcX + 34, hcY + 8);
-    final isHappy = _isPetted || _isDancing || sim.locomotionMode == PetActionState.jump;
+    final isHappy =
+        _isPetted || _isDancing || sim.locomotionMode == PetActionState.jump;
     final isSad = sim.locomotionMode == PetActionState.groom;
 
     if (_isSleeping) {
@@ -858,11 +973,15 @@ class _PetStageRenderer {
     if (_isEating) {
       final chew = math.sin(sim.timeSec * 11).abs();
       _oval(_deepNose, noseCenter.dx - 9, noseCenter.dy + 6, 18, 8 + chew * 8);
-      _oval(const Color(0xFFFB7185), noseCenter.dx - 6, noseCenter.dy + 8, 12, 5 + chew * 5);
+      _oval(const Color(0xFFFB7185), noseCenter.dx - 6, noseCenter.dy + 8, 12,
+          5 + chew * 5);
     } else if (isHappy || isRunning || jumpSin > 0.2) {
-      _oval(const Color(0xFF6D28D9), noseCenter.dx - 10, noseCenter.dy + 6, 20, 12);
-      _oval(const Color(0xFFFB7185), noseCenter.dx - 6, noseCenter.dy + 9, 12, 6);
-      _oval(_white.withValues(alpha: 0.7), noseCenter.dx - 4, noseCenter.dy + 8, 8, 3);
+      _oval(const Color(0xFF6D28D9), noseCenter.dx - 10, noseCenter.dy + 6, 20,
+          12);
+      _oval(
+          const Color(0xFFFB7185), noseCenter.dx - 6, noseCenter.dy + 9, 12, 6);
+      _oval(_white.withValues(alpha: 0.7), noseCenter.dx - 4, noseCenter.dy + 8,
+          8, 3);
     } else if (isSad) {
       _arc(_deepNose, noseCenter.dx - 8, noseCenter.dy + 10, 16, 10,
           startAngle: 200, sweepAngle: 140, useCenter: false, strokeWidth: 3);
@@ -874,11 +993,13 @@ class _PetStageRenderer {
     }
   }
 
-  void _drawSingleExpressiveEye(Offset eyePos, double pupilShiftX, double pupilShiftY) {
+  void _drawSingleExpressiveEye(
+      Offset eyePos, double pupilShiftX, double pupilShiftY) {
     // Büyük dikey oval, iri pupil, 2 parlama (rehber §4). Sert eyeliner yumuşatıldı.
     _oval(_white, eyePos.dx - 20, eyePos.dy - 24, 40, 48);
     final irisCenter = Offset(eyePos.dx + pupilShiftX, eyePos.dy + pupilShiftY);
-    final irisRect = Rect.fromLTWH(irisCenter.dx - 16, irisCenter.dy - 19, 32, 38);
+    final irisRect =
+        Rect.fromLTWH(irisCenter.dx - 16, irisCenter.dy - 19, 32, 38);
     canvas.drawOval(
       irisRect,
       Paint()
@@ -918,8 +1039,10 @@ class _PetStageRenderer {
     // Üçgen, hafif sivri, yuvarlak tabanlı kulak.
     final earOuterPath = Path()
       ..moveTo(baseX - earWidth * 0.5, baseY + 10)
-      ..quadraticBezierTo(baseX - earWidth * 0.62, baseY - earHeight * 0.62, baseX, baseY - earHeight)
-      ..quadraticBezierTo(baseX + earWidth * 0.62, baseY - earHeight * 0.62, baseX + earWidth * 0.5, baseY + 10)
+      ..quadraticBezierTo(baseX - earWidth * 0.62, baseY - earHeight * 0.62,
+          baseX, baseY - earHeight)
+      ..quadraticBezierTo(baseX + earWidth * 0.62, baseY - earHeight * 0.62,
+          baseX + earWidth * 0.5, baseY + 10)
       ..quadraticBezierTo(baseX, baseY + 18, baseX - earWidth * 0.5, baseY + 10)
       ..close();
     canvas.drawPath(earOuterPath, _fill(outerColor));
@@ -927,19 +1050,19 @@ class _PetStageRenderer {
     // İç kulak: koyu mor (rehber §3).
     final earInnerPath = Path()
       ..moveTo(baseX - earWidth * 0.30, baseY + 6)
-      ..quadraticBezierTo(
-          baseX - earWidth * 0.38, baseY - earHeight * 0.55, baseX, baseY - earHeight * 0.80)
-      ..quadraticBezierTo(
-          baseX + earWidth * 0.38, baseY - earHeight * 0.55, baseX + earWidth * 0.30, baseY + 6)
+      ..quadraticBezierTo(baseX - earWidth * 0.38, baseY - earHeight * 0.55,
+          baseX, baseY - earHeight * 0.80)
+      ..quadraticBezierTo(baseX + earWidth * 0.38, baseY - earHeight * 0.55,
+          baseX + earWidth * 0.30, baseY + 6)
       ..quadraticBezierTo(baseX, baseY + 10, baseX - earWidth * 0.30, baseY + 6)
       ..close();
     canvas.drawPath(earInnerPath, _fill(_earDeep));
     final earInnerLight = Path()
       ..moveTo(baseX - earWidth * 0.20, baseY + 2)
-      ..quadraticBezierTo(
-          baseX - earWidth * 0.26, baseY - earHeight * 0.48, baseX, baseY - earHeight * 0.68)
-      ..quadraticBezierTo(
-          baseX + earWidth * 0.26, baseY - earHeight * 0.48, baseX + earWidth * 0.20, baseY + 2)
+      ..quadraticBezierTo(baseX - earWidth * 0.26, baseY - earHeight * 0.48,
+          baseX, baseY - earHeight * 0.68)
+      ..quadraticBezierTo(baseX + earWidth * 0.26, baseY - earHeight * 0.48,
+          baseX + earWidth * 0.20, baseY + 2)
       ..close();
     canvas.drawPath(earInnerLight, _fill(innerColor.withValues(alpha: 0.85)));
   }
@@ -948,8 +1071,10 @@ class _PetStageRenderer {
     if (flags.hasStarGlasses) {
       final leftEyeCenter = Offset(hcX - 26, hcY + 2);
       final rightEyeCenter = Offset(hcX + 30, hcY + 2);
-      canvas.drawCircle(leftEyeCenter, 22, _stroke(const Color(0xFFA855F7), 4.5));
-      canvas.drawCircle(rightEyeCenter, 22, _stroke(const Color(0xFFA855F7), 4.5));
+      canvas.drawCircle(
+          leftEyeCenter, 22, _stroke(const Color(0xFFA855F7), 4.5));
+      canvas.drawCircle(
+          rightEyeCenter, 22, _stroke(const Color(0xFFA855F7), 4.5));
       canvas.drawLine(
         Offset(leftEyeCenter.dx + 20, leftEyeCenter.dy),
         Offset(rightEyeCenter.dx - 20, rightEyeCenter.dy),
@@ -963,13 +1088,15 @@ class _PetStageRenderer {
       final crownPath = Path()
         ..moveTo(hcX - 30, crownBaseY)
         ..lineTo(hcX - 34, crownBaseY - 30)
-        ..quadraticBezierTo(hcX - 32, crownBaseY - 36, hcX - 26, crownBaseY - 30)
+        ..quadraticBezierTo(
+            hcX - 32, crownBaseY - 36, hcX - 26, crownBaseY - 30)
         ..lineTo(hcX - 12, crownBaseY - 16)
         ..lineTo(hcX - 4, crownBaseY - 42)
         ..quadraticBezierTo(hcX, crownBaseY - 50, hcX + 4, crownBaseY - 42)
         ..lineTo(hcX + 12, crownBaseY - 16)
         ..lineTo(hcX + 26, crownBaseY - 30)
-        ..quadraticBezierTo(hcX + 32, crownBaseY - 36, hcX + 34, crownBaseY - 30)
+        ..quadraticBezierTo(
+            hcX + 32, crownBaseY - 36, hcX + 34, crownBaseY - 30)
         ..lineTo(hcX + 30, crownBaseY)
         ..close();
       final crownRect = Rect.fromLTWH(hcX - 34, crownBaseY - 50, 68, 50);
@@ -1002,9 +1129,11 @@ class _PetStageRenderer {
         _fill(_white.withValues(alpha: 0.9)),
       );
       // Gold shine dots on teeth.
-      canvas.drawCircle(Offset(hcX - 30, crownBaseY - 28), 2.5, _fill(_goldLight));
+      canvas.drawCircle(
+          Offset(hcX - 30, crownBaseY - 28), 2.5, _fill(_goldLight));
       canvas.drawCircle(Offset(hcX, crownBaseY - 40), 3, _fill(_goldLight));
-      canvas.drawCircle(Offset(hcX + 30, crownBaseY - 28), 2.5, _fill(_goldLight));
+      canvas.drawCircle(
+          Offset(hcX + 30, crownBaseY - 28), 2.5, _fill(_goldLight));
     }
 
     if (flags.hasMushroomHat) {
@@ -1068,7 +1197,8 @@ class _PetStageRenderer {
       canvas.drawCircle(const Offset(-62, -12), 48, _fill(_white));
       canvas.drawCircle(const Offset(0, -22), 58, _fill(_white));
       canvas.drawCircle(const Offset(62, -12), 48, _fill(_white));
-      canvas.drawCircle(const Offset(-48, -18), 24, _fill(const Color(0xFFFBBF24)));
+      canvas.drawCircle(
+          const Offset(-48, -18), 24, _fill(const Color(0xFFFBBF24)));
     });
   }
 

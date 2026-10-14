@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 
-class ShopCategory {
+/// Presentation tab modeli — domain'deki `ShopCategory` enum'unu gölgelememesi
+/// için `ShopCategoryTab` adını kullanır (önceki `ShopCategory` ismi
+/// `features/home/domain/entities/cosmetic_item.dart` ile çakışıyordu).
+class ShopCategoryTab {
   final String label;
   final IconData icon;
 
-  const ShopCategory({required this.label, required this.icon});
+  const ShopCategoryTab({required this.label, required this.icon});
 }
 
-const List<ShopCategory> shopCategories = [
-  ShopCategory(label: 'Kıyafet', icon: Icons.checkroom_rounded),
-  ShopCategory(label: 'Aksesuar', icon: Icons.watch_outlined),
-  ShopCategory(label: 'Mobilya', icon: Icons.chair_alt_rounded),
-  ShopCategory(label: 'Arka Plan', icon: Icons.landscape_rounded),
+const List<ShopCategoryTab> shopCategories = [
+  ShopCategoryTab(label: 'Outfits', icon: Icons.checkroom_rounded),
+  ShopCategoryTab(label: 'Accessories', icon: Icons.watch_outlined),
+  ShopCategoryTab(label: 'Furniture', icon: Icons.chair_alt_rounded),
+  ShopCategoryTab(label: 'Background', icon: Icons.landscape_rounded),
 ];
 
 /// Üstteki 4'lü kategori seçici — seçili olan mor dolgulu.

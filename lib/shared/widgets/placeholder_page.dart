@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lumo/core/constants/app_text.dart';
-import 'package:lumo/core/constants/app_colors.dart';
+import 'package:lumo/core/constants/app_typography.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 
 /// Temporary page used for tabs that are not implemented yet
@@ -28,11 +27,7 @@ class PlaceholderPage extends StatelessWidget {
         Center(
           child: Text(
             title,
-            style: AppText.nunito(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: AppColors.textPrimary,
-            ),
+            style: AppTypography.headingLarge,
           ),
         ),
       ],

@@ -3,15 +3,25 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
+import 'package:lumo/core/di/injection.dart';
+import 'package:lumo/core/repositories/progress_repositories.dart';
+import 'package:lumo/core/repositories/user_profile_repository.dart';
+import 'package:lumo/core/repositories/wallet_repository.dart';
+import 'package:lumo/core/repositories/wallet_repository_impl.dart';
 import 'package:lumo/core/services/audio_service.dart';
 import 'package:lumo/core/services/haptic_service.dart';
+import 'package:lumo/core/services/progress_store.dart';
 import 'package:lumo/core/services/user_profile_store.dart';
+import 'package:lumo/core/services/wallet_store.dart';
 import 'package:lumo/features/breathing/presentation/pages/breathing_page.dart';
 import 'package:lumo/features/home/domain/entities/cosmetic_item.dart';
 import 'package:lumo/features/home/domain/entities/mascot_species.dart';
 import 'package:lumo/features/home/domain/entities/pet_action_state.dart';
+import 'package:lumo/features/home/presentation/bloc/home_state.dart'
+    show resolvePetMood, PetMood;
 import 'package:lumo/features/home/presentation/pet/lumo_interactive_pet_stage.dart';
 import 'package:lumo/features/home/presentation/pet/rive_pet_stage.dart';
+import 'package:lumo/features/home/presentation/widgets/daily_tasks_panel.dart';
 import 'package:lumo/features/home/presentation/widgets/falling_leaves.dart';
 import 'package:lumo/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:lumo/shared/widgets/coin_badge.dart';
@@ -44,16 +54,16 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// Onboarding'de seçilen maskot (local storage'dan yüklenir).
   MascotSpecies _species = MascotSpecies.fox;
 
   /// Onboarding'de girilen isim — selamlamada kullanılır.
   String _userName = '';
 
-  /// Adım 2: `lumo.riv` hazır olunca true yap — Rive sahneye geçer,
-  /// dosya yoksa otomatik vektör sahneye düşer.
-  static const bool _useRive = false;
+  /// Rive sahnesi önceliklidir; `lumo.riv` henüz pakette yoksa
+  /// [RivePetStage] otomatik olarak vektör sahneye düşer.
+  static const bool _useRive = true;
 
   /// Wardrobe / furniture rendered on the stage (cloud bed, lantern, crown…).
   final List<CosmeticItem> _equippedItems = defaultCosmeticItems;
@@ -71,69 +81,169 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   double _hydration = 0.78;
   double _happiness = 0.92;
   double _energy = 0.88;
-  
-  bool _isPetCarePanelExpanded = true;
-  bool _isHomeTasksExpanded = false;
-  String _statusBubbleText = "Seninle vakit geçirmek çok güzel! 💜";
+
+  bool _isPetCarePanelExpanded = false;
+  String _statusBubbleText = "I love spending time with you! 💜";
+
+  /// Kafa üstü balon yalnızca [_statusBubbleText] değiştiğinde belirir ve
+  /// birkaç saniye sonra kendiliğinden gizlenir (bkz. [_say]).
+  bool _bubbleVisible = false;
+  Timer? _bubbleTimer;
+
   bool _isNightMode = false;
+
+  // ── Cüzdan (coin/XP/level) — repository üzerinden, static Store yok ──
+  int _coins = WalletRepositoryImpl.defaultCoins;
+  int _level = WalletRepositoryImpl.defaultLevel;
+  int _xp = WalletRepositoryImpl.defaultXp;
+  static const int _xpMax = WalletRepositoryImpl.xpPerLevel;
+  bool _isAppResumed = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadProfile();
     _updateEnvironmentMode();
     _startVitalPulse();
     _scheduleIdleWander();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isResumed = state == AppLifecycleState.resumed;
+    if (_isAppResumed == isResumed) return;
+
+    setState(() {
+      _isAppResumed = isResumed;
+    });
+  }
+
   /// Kayıtlı profil (isim + maskot) — yoksa varsayılanlarla devam edilir.
+  ///
+  /// GetIt kayıtlıysa repository'ler, değilse (test/önizleme) static
+  /// Store'lar kullanılır — iki yol da aynı anahtarlara yazar.
+  Future<UserProfile> _loadUserProfile() =>
+      sl.isRegistered<UserProfileRepository>()
+          ? sl<UserProfileRepository>().load()
+          : UserProfileStore.load();
+
+  Future<({double hunger, double water, double happy, double energy})>
+      _loadVitals() async {
+    if (sl.isRegistered<PetVitalsRepository>()) {
+      return sl<PetVitalsRepository>().load();
+    }
+    final v = await PetVitalsStore.load();
+    return (hunger: v.$1, water: v.$2, happy: v.$3, energy: v.$4);
+  }
+
+  Future<({int coins, int xp, int level, int streak})> _loadWallet() async {
+    if (sl.isRegistered<WalletRepository>()) {
+      return sl<WalletRepository>().load();
+    }
+    final w = await WalletStore.load();
+    return (coins: w.$1, xp: w.$2, level: w.$3, streak: w.$4);
+  }
+
+  Future<void> _saveVitals() {
+    if (sl.isRegistered<PetVitalsRepository>()) {
+      return sl<PetVitalsRepository>()
+          .save(_hunger, _hydration, _happiness, _energy);
+    }
+    return PetVitalsStore.save(_hunger, _hydration, _happiness, _energy);
+  }
+
+  Future<({int level, int xp})> _addWalletXp(int amount) async {
+    if (sl.isRegistered<WalletRepository>()) {
+      return sl<WalletRepository>().addXp(amount);
+    }
+    final r = await WalletStore.addXp(amount);
+    return (level: r.$1, xp: r.$2);
+  }
+
   Future<void> _loadProfile() async {
-    final profile = await UserProfileStore.load();
+    final results = await Future.wait([
+      _loadUserProfile(),
+      _loadVitals(),
+      _loadWallet(),
+    ]);
     if (!mounted) return;
+    final profile = results[0] as UserProfile;
+    final vitals = results[1] as ({
+      double hunger,
+      double water,
+      double happy,
+      double energy
+    });
+    final wallet = results[2] as ({int coins, int xp, int level, int streak});
     setState(() {
       _userName = profile.name;
       _species = MascotSpecies.fromId(profile.speciesId);
+      _hunger = vitals.hunger;
+      _hydration = vitals.water;
+      _happiness = vitals.happy;
+      _energy = vitals.energy;
+      _coins = wallet.coins;
+      _xp = wallet.xp;
+      _level = wallet.level;
+    });
+    _updatePetMood();
+  }
+
+  Future<void> _persistVitals() => _saveVitals();
+
+  Future<void> _refreshWallet() async {
+    final wallet = await _loadWallet();
+    if (!mounted) return;
+    setState(() {
+      _coins = wallet.coins;
+      _xp = wallet.xp;
+      _level = wallet.level;
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _idleWanderTimer?.cancel();
     _petActionTimer?.cancel();
     _vitalPulseTimer?.cancel();
+    _bubbleTimer?.cancel();
     super.dispose();
   }
 
+  /// Yeni durum metnini balona yazar ve balonu ~3.5 sn boyunca görünür tutar.
+  /// Balonun ömrü sahnedeki simülasyonda değil, burada sahiplenilir.
+  void _say(String text) {
+    _bubbleTimer?.cancel();
+    setState(() {
+      _statusBubbleText = text;
+      _bubbleVisible = true;
+    });
+    _bubbleTimer = Timer(const Duration(milliseconds: 3500), () {
+      if (!mounted) return;
+      setState(() => _bubbleVisible = false);
+    });
+  }
+
   void _updatePetMood() {
-    if (_energy < 0.12) {
-      _petMood = _PetMood.sleepy;
-      return;
-    }
-    if (_hunger > 0.82) {
-      _petMood = _PetMood.hungry;
-      return;
-    }
-    if (_hydration < 0.25) {
-      _petMood = _PetMood.thirsty;
-      return;
-    }
-    if (_happiness < 0.28) {
-      _petMood = _PetMood.needy;
-      return;
-    }
-    if (_energy < 0.45) {
-      _petMood = _PetMood.tired;
-      return;
-    }
-    if (_happiness > 0.82 && _energy > 0.5) {
-      _petMood = _PetMood.playful;
-      return;
-    }
-    if (_happiness > 0.6) {
-      _petMood = _PetMood.joyful;
-      return;
-    }
-    _petMood = _PetMood.calm;
+    // Saf fonksiyon HomeBloc'ta — test edilebilir, Widget sadece map'ler.
+    final mood = resolvePetMood(
+      hunger: _hunger,
+      hydration: _hydration,
+      happiness: _happiness,
+      energy: _energy,
+    );
+    _petMood = switch (mood) {
+      PetMood.joyful => _PetMood.joyful,
+      PetMood.playful => _PetMood.playful,
+      PetMood.sleepy => _PetMood.sleepy,
+      PetMood.hungry => _PetMood.hungry,
+      PetMood.thirsty => _PetMood.thirsty,
+      PetMood.tired => _PetMood.tired,
+      PetMood.calm => _PetMood.calm,
+      PetMood.needy => _PetMood.needy,
+    };
   }
 
   void _startVitalPulse() {
@@ -141,8 +251,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _vitalPulseTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (!mounted) return;
 
-      final isSleeping =
-          _petLifecycle == _PetLifecycleState.resting && _petAction == PetActionState.sleep;
+      final isSleeping = _petLifecycle == _PetLifecycleState.resting &&
+          _petAction == PetActionState.sleep;
 
       setState(() {
         if (isSleeping) {
@@ -158,6 +268,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           _happiness = (_happiness - 0.02).clamp(0.0, 1.0);
         }
       });
+      _persistVitals();
 
       _updatePetMood();
 
@@ -167,8 +278,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           setState(() {
             _petAction = PetActionState.idle;
             _petLifecycle = _PetLifecycleState.idle;
-            _statusBubbleText = "Oh, dinlendim! Oynamaya hazırım! ✨";
           });
+          _say("Oh, I feel rested! I'm ready to play! ✨");
         }
         return;
       }
@@ -210,17 +321,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       setState(() {
         _petAction = PetActionState.idle;
         _petLifecycle = _PetLifecycleState.idle;
-        _statusBubbleText = "Seninle vakit geçirmek çok güzel! 💜";
       });
+      _say("I love spending time with you! 💜");
     });
   }
 
-  PetActionState _resolvePriorityAction() {
+  /// Acil ve **deterministik** ihtiyaç — build sırasında güvenle çağrılır.
+  /// [_resolvePriorityAction] bu sonucu rastgele "oyna" önerisiyle tamamlar;
+  /// buton nabzı yalnızca bu metodu kullanır ki ekran her yeniden
+  /// çizildiğinde kırmızı nokta zıplamasın.
+  PetActionState? _urgentCareAction() {
     if (_energy < 0.10 || _petMood == _PetMood.sleepy) {
       return PetActionState.sleep;
-    }
-    if (_hunger > 0.82 || _petMood == _PetMood.hungry) {
-      return PetActionState.eat;
     }
     if (_hydration < 0.28 || _petMood == _PetMood.thirsty) {
       return PetActionState.drink;
@@ -231,21 +343,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (_energy < 0.38 || _petMood == _PetMood.tired) {
       return PetActionState.walk;
     }
-    if ((_happiness > 0.85 || _petMood == _PetMood.playful) && Random().nextBool()) {
-      return PetActionState.playBall;
-    }
-    return PetActionState.idle;
+    return null;
+  }
+
+  PetActionState _resolvePriorityAction() {
+    return _urgentCareAction() ?? PetActionState.idle;
   }
 
   void _executeAutoCare(PetActionState action) {
     final bubble = switch (action) {
-      PetActionState.sleep => "Kendime biraz dinlenmem lazım... uyku vakti! 😴",
-      PetActionState.eat => "Açlığım arttı, bir şeyler yemem lazım! 🍎",
-      PetActionState.drink => "Susadım, su içmem gerekli! 💧",
-      PetActionState.groom => "Biraz kendime bakmam lazım. Tüylerim dağınık! ✨",
-      PetActionState.playBall => "Enerjim yerine geldi, biraz koşup oyun oynayayım! ⚽",
-      PetActionState.walk => "Kısa bir yürüyüş iyi gelir! 🌿",
-      _ => "Seninle vakit geçirmek çok güzel! 💜",
+      PetActionState.sleep => "I need some rest... it's bedtime! 😴",
+      PetActionState.eat => "I'm getting hungry, I need something to eat! 🍎",
+      PetActionState.drink => "I'm thirsty, I need a drink! 💧",
+      PetActionState.groom => "I need to groom myself. My fur is messy! ✨",
+      PetActionState.playBall => "My energy is back, let's run and play! ⚽",
+      PetActionState.walk => "A short walk would feel great! 🌿",
+      _ => "I love spending time with you! 💜",
     };
 
     setState(() {
@@ -253,13 +366,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _petLifecycle = action == PetActionState.sleep
           ? _PetLifecycleState.resting
           : _PetLifecycleState.seekingCare;
-      _statusBubbleText = bubble;
     });
+    // Balon metnini `_transitionPetAction` balonu sahiplenir (bkz. `_say`).
 
     _transitionPetAction(
       action,
       bubble: bubble,
-      lifetime: action == PetActionState.sleep ? null : const Duration(milliseconds: 1800),
+      lifetime: action == PetActionState.sleep
+          ? null
+          : const Duration(milliseconds: 1800),
     );
   }
 
@@ -275,7 +390,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final priority = _resolvePriorityAction();
     if (priority != PetActionState.idle) return priority;
     if (_energy < 0.15) return PetActionState.sleep;
-    if (_hunger > 0.75) return PetActionState.eat;
     if (_hydration < 0.35) return PetActionState.drink;
     if (_happiness < 0.35) return PetActionState.groom;
     return null;
@@ -290,17 +404,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _petAction = action;
       _petLifecycle = switch (action) {
         PetActionState.sleep => _PetLifecycleState.resting,
-        PetActionState.eat || PetActionState.drink || PetActionState.groom => _PetLifecycleState.seekingCare,
-        PetActionState.walk || PetActionState.run || PetActionState.playBall || PetActionState.dance => _PetLifecycleState.wandering,
+        PetActionState.eat ||
+        PetActionState.drink ||
+        PetActionState.groom =>
+          _PetLifecycleState.seekingCare,
+        PetActionState.walk ||
+        PetActionState.run ||
+        PetActionState.playBall ||
+        PetActionState.dance =>
+          _PetLifecycleState.wandering,
         PetActionState.idle => _PetLifecycleState.idle,
         _ => _PetLifecycleState.reacting,
       };
-      if (bubble != null) {
-        _statusBubbleText = bubble;
-      }
     });
+    if (bubble != null) {
+      _say(bubble);
+    }
 
-    if (lifetime != null && action != PetActionState.sleep && action != PetActionState.idle) {
+    if (lifetime != null &&
+        action != PetActionState.sleep &&
+        action != PetActionState.idle) {
       _applyPetActionTimer(duration: lifetime);
     }
   }
@@ -333,18 +456,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     switch (petAction) {
       case PetActionState.petted || PetActionState.groom:
         PetSoundService.playPurr();
-      case PetActionState.playBall || PetActionState.dance || PetActionState.jump:
+      case PetActionState.playBall ||
+            PetActionState.dance ||
+            PetActionState.jump:
         PetSoundService.playGiggle();
       case PetActionState.sleep:
         PetSoundService.playSleep();
-      case PetActionState.eat || PetActionState.drink || PetActionState.run || PetActionState.walk || PetActionState.idle:
+      case PetActionState.eat ||
+            PetActionState.drink ||
+            PetActionState.run ||
+            PetActionState.walk ||
+            PetActionState.idle:
         PetSoundService.playPop();
     }
 
     setState(() {
       switch (petAction) {
         case PetActionState.eat:
-          _hunger = (_hunger + 0.18).clamp(0.0, 1.0);
+          _hunger = (_hunger - 0.18).clamp(0.0, 1.0);
           _happiness = (_happiness + 0.08).clamp(0.0, 1.0);
           break;
         case PetActionState.drink:
@@ -382,35 +511,50 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           break;
       }
     });
+    // Vital değişti → ruh hali ve acil buton nabazı hemen tazelensin.
+    _updatePetMood();
+    _persistVitals();
+    // Bakım mini-ödülü: her etkileşimde küçük XP, coin değil (ekonomi Tasks/Shop'ta).
+    _addWalletXp(2).then((r) {
+      if (!mounted) return;
+      setState(() {
+        _level = r.level;
+        _xp = r.xp;
+      });
+    });
 
     final bubble = switch (petAction) {
-      PetActionState.eat => "Nefis! Karnım doydu, çok teşekkürler! 🍎✨",
-      PetActionState.drink => "Berrak kaynak suyu çok ferahlatıcı! 💧",
-      PetActionState.petted => "Mırrr... Başımın okşanmasına bayılıyorum! 💖",
-      PetActionState.playBall => "Yakaladım! Hadi tekrar at, koşmak çok eğlenceli! ⚽🐾",
-      PetActionState.run => "Rüzgar gibi koşuyorum! Bak ayaklarıma! 🏃‍♂️💨",
-      PetActionState.groom => "Tüylerim yumuşacık ve tertemiz oldu! 🫧✨",
-      PetActionState.sleep => "Zzz... Tatlı rüyalar görüyorum... 🌙",
-      PetActionState.jump => "Yaşasın! Gökyüzüne kadar zıpladım! ⭐",
-      PetActionState.walk => "Çayırda yürüyüş yapmak harika! 🌸",
-      PetActionState.dance => "Mutluluk dansı zamanı! 🎉",
-      PetActionState.idle => "Seninle vakit geçirmek çok güzel! 💜",
+      PetActionState.eat => "Delicious! I'm full, thank you! 🍎✨",
+      PetActionState.drink => "Fresh spring water is so refreshing! 💧",
+      PetActionState.petted => "Purrr... I love having my head petted! 💖",
+      PetActionState.playBall =>
+        "Caught it! Throw it again, running is so fun! ⚽🐾",
+      PetActionState.run =>
+        "I'm running like the wind! Look at my feet! 🏃‍♂️💨",
+      PetActionState.groom => "My fur is soft and clean again! 🫧✨",
+      PetActionState.sleep => "Zzz... sweet dreams... 🌙",
+      PetActionState.jump => "Yay! I jumped up to the sky! ⭐",
+      PetActionState.walk => "Walking in the meadow is wonderful! 🌸",
+      PetActionState.dance => "Time for a happy dance! 🎉",
+      PetActionState.idle => "I love spending time with you! 💜",
     };
 
     _transitionPetAction(
       petAction,
       bubble: bubble,
-      lifetime: petAction == PetActionState.sleep || petAction == PetActionState.idle
-          ? null
-          : const Duration(milliseconds: 1800),
+      lifetime:
+          petAction == PetActionState.sleep || petAction == PetActionState.idle
+              ? null
+              : const Duration(milliseconds: 1800),
     );
   }
 
   // ── Sağ üst buton rotaları ───────────────────────────────────────
-  void _openBreathing() {
-    Navigator.of(context).push(
+  void _openBreathing() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const BreathingPage()),
     );
+    _refreshWallet();
   }
 
   void _openNotifications() {
@@ -419,18 +563,44 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+  /// Günlük görev önizlemesi — [DailyTasksPanel] alt sayfa olarak açılır.
+  /// Home ağacında gömülü değildir; istenince bu kısayoldan ulaşılır.
+  void _openDailyQuests() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const Padding(
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 32),
+        child: DailyTasksPanel(),
+      ),
+    );
+  }
+
+  /// Sahnedeki yürüme/koşma etkileşimi için kısa bilgi balonu gösterir.
+  void _handleGroundTapped(PetActionState moveMode, String message) {
+    assert(moveMode == PetActionState.walk || moveMode == PetActionState.run);
+    _say(message);
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final topPadding = MediaQuery.of(context).padding.top;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
 
-    final environmentBackground = _isNightMode
-        ? AssetPaths.nightMeadow
-        : AssetPaths.dayMeadow;
+    // Alt nav (66px + güvenli alan + nav alt payı) üstünde 15px boşluk:
+    // bakım butonları + Lumi Care şeridi navbara binmesin.
+    final navBottomPad = (bottomInset > 0 ? bottomInset : 10.0) + 6.0;
+    final bottomReserve = navBottomPad + 15.0;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
+    final environmentBackground =
+        _isNightMode ? AssetPaths.nightMeadow : AssetPaths.dayMeadow;
+
+    return TickerMode(
+      enabled: _isAppResumed,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
         fit: StackFit.expand,
         children: [
           // ── 1. Full-screen Background (net: blur kapalı) ──
@@ -439,6 +609,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             imagePath: environmentBackground,
             blurSigma: 0,
             paleOpacity: 0,
+          ),
+
+          // ── 1b. Vignette: kenarları koyulaştıran yumuşak gradyan ──
+          // Parlak gökyüzünde kalan bütün yazılar (üst bar, yan kısayollar,
+          // alt bakım şeridi) tek hamlede okunur hale gelir.
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0, -0.18),
+                  radius: 0.98,
+                  colors: [
+                    Colors.transparent,
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.10),
+                    Colors.black.withValues(alpha: 0.38),
+                  ],
+                  stops: const [0.0, 0.42, 0.72, 1.0],
+                ),
+              ),
+            ),
           ),
 
           // ── 2. Sky ambience and environment props ────────────────
@@ -487,7 +678,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             left: 0,
             right: 0,
             bottom: 0,
-            height: size.height * 0.50,
+            height: size.height * 0.52,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -495,18 +686,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.06),
-                    Colors.black.withValues(alpha: 0.12),
+                    Colors.black.withValues(alpha: 0.10),
+                    Colors.black.withValues(alpha: 0.26),
                   ],
                   stops: const [0.0, 0.6, 1.0],
                 ),
               ),
             ),
           ),
-
-          // ── 3. Interactive pet stage (full screen) ────────────────
-          // The stage owns locomotion, gestures, particles and every body
-          // animation, exactly like `LumoInteractivePetStage` in the Kotlin app.
           Positioned.fill(
             child: _useRive
                 ? RivePetStage(
@@ -515,38 +702,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     equippedItems: _equippedItems,
                     reduceMotion: false,
                     isNight: _isNightMode,
-                    onPetTappedOrStroked: () => _performPetAction(PetActionState.petted),
-                    onGroundTapped: (moveMode, message) {
-                      setState(() {
-                        _petAction = moveMode;
-                        _petLifecycle = moveMode == PetActionState.run ||
-                                moveMode == PetActionState.walk
-                            ? _PetLifecycleState.wandering
-                            : _PetLifecycleState.idle;
-                        _statusBubbleText = message;
-                      });
-                      _applyPetActionTimer();
-                    },
+                    speechText: _statusBubbleText,
+                    speechVisible: _bubbleVisible,
+                    onPetTappedOrStroked: () =>
+                        _performPetAction(PetActionState.petted),
+                    onGroundTapped: _handleGroundTapped,
                   )
                 : LumoInteractivePetStage(
-              species: _species,
-              actionState: _petAction,
-              equippedItems: _equippedItems,
-              reduceMotion: false,
-              isNight: _isNightMode,
-              onPetTappedOrStroked: () => _performPetAction(PetActionState.petted),
-              onGroundTapped: (moveMode, message) {
-                setState(() {
-                  _petAction = moveMode;
-                  _petLifecycle = moveMode == PetActionState.run ||
-                          moveMode == PetActionState.walk
-                      ? _PetLifecycleState.wandering
-                      : _PetLifecycleState.idle;
-                  _statusBubbleText = message;
-                });
-                _applyPetActionTimer();
-              },
-            ),
+                    species: _species,
+                    actionState: _petAction,
+                    equippedItems: _equippedItems,
+                    reduceMotion: false,
+                    isNight: _isNightMode,
+                    speechText: _statusBubbleText,
+                    speechVisible: _bubbleVisible,
+                    onPetTappedOrStroked: () =>
+                        _performPetAction(PetActionState.petted),
+                    onGroundTapped: _handleGroundTapped,
+                  ),
           ),
 
           // ── 4. Top Bar (greeting + coins + profile) ───────────────
@@ -595,180 +768,226 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                   const SizedBox(width: 10),
 
-                  // Name + level
+                  // Selamlama + XP bar — parlak gökyüzünde okunurluk için
+                  // yarı saydam koyu hap (gölge tek başına yetmiyor).
                   Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _userName.isEmpty
-                              ? 'Merhaba!'
-                              : 'Merhaba, $_userName!',
-                          style: AppText.nunito(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            shadows: const [
-                              Shadow(
-                                color: Colors.black38,
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(12, 7, 13, 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.34),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _userName.isEmpty
+                                ? 'Hello! · Lv. $_level'
+                                : 'Hello, $_userName! · Lv. $_level',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.nunito(
+                              fontSize: 16.5,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: SizedBox(
+                                    height: 7,
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.24),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                        ),
+                                        FractionallySizedBox(
+                                          alignment: Alignment.centerLeft,
+                                          widthFactor:
+                                              (_xp / _xpMax).clamp(0.0, 1.0),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [
+                                                  Color(0xFFA78BE0),
+                                                  Color(0xFFFEF08A),
+                                                ],
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  '$_xp/$_xpMax',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppText.nunito(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white.withValues(alpha: 0.85),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 1),
-                        Text(
-                          '(Level 5, 230 xp)',
-                          style: AppText.nunito(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            shadows: const [
-                              Shadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                offset: Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Coins
-                  const CoinReward(amount: 246),
-                  const SizedBox(width: 10),
-
-                  // Profile icon
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.25),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        width: 1.2,
+                        ],
                       ),
                     ),
-                    child: const Icon(
-                      Icons.person_outline_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
                   ),
+
+                  const SizedBox(width: 8),
+
+                  CoinReward(amount: _coins),
                 ],
               ),
             ),
           ),
 
-          // ── 5. Right side action buttons ──────────────────────────
           Positioned(
             right: 14,
-            top: topPadding + 80,
+            top: topPadding + 84,
             child: Column(
               children: [
                 _SideActionButton(
-                  icon: Icons.inventory_2_outlined,
+                  icon: Icons.notifications_rounded,
                   color: const Color(0xFFFF8A65),
+                  label: 'Notifications',
                   onTap: _openNotifications,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _SideActionButton(
-                  icon: Icons.star_rounded,
-                  color: const Color(0xFFFFD54F),
-                  onTap: _openNotifications,
-                ),
-                const SizedBox(height: 12),
-                _SideActionButton(
-                  icon: Icons.water_drop_outlined,
-                  color: const Color(0xFF64B5F6),
+                  icon: Icons.spa_rounded,
+                  color: const Color(0xFF4FB3F0),
+                  label: 'Calm',
                   onTap: _openBreathing,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 _SideActionButton(
-                  icon: Icons.refresh_rounded,
-                  color: const Color(0xFF81C784),
-                  onTap: () {},
+                  icon: Icons.checklist_rounded,
+                  color: const Color(0xFF58C77A),
+                  label: 'Quests',
+                  onTap: _openDailyQuests,
                 ),
               ],
             ),
           ),
 
-          // ── Speech Bubble ───────────────────────────────────────────
-          Positioned(
-            top: topPadding + 80,
-            left: 16,
-            right: 80,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.86),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.65)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Text("🦊", style: TextStyle(fontSize: 15)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _statusBubbleText,
-                      style: AppText.nunito(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1E2E3D),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── 6. Bottom Panels (Pet Care & Tasks) ───────────────────
+          // ── 6. Alt alan: sabit 4 bakım butonu + ince bakım şeridi ──
           Positioned(
             left: 12,
             right: 12,
-            bottom: 90,
+            bottom: bottomReserve,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Pet Care Panel
+                // (a) Lumi'nin altına sabit, etiketli 4 net bakım butonu.
+                // Dördü de aynı stildedir (acil nabız/kırmızı nokta yok).
+                Row(
+                  children: [
+                    Expanded(
+                      child: _CareActionButton(
+                        id: 'feed',
+                        label: 'Feed',
+                        icon: Icons.restaurant_rounded,
+                        color: const Color(0xFFFB923C),
+                        value: _hunger,
+                        onTap: () => _performPetAction(PetActionState.eat),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: _CareActionButton(
+                        id: 'water',
+                        label: 'Water',
+                        icon: Icons.water_drop_rounded,
+                        color: const Color(0xFF38BDF8),
+                        value: _hydration,
+                        onTap: () => _performPetAction(PetActionState.drink),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: _CareActionButton(
+                        id: 'play',
+                        label: 'Play',
+                        icon: Icons.sports_soccer_rounded,
+                        color: const Color(0xFFFBBF24),
+                        value: _happiness,
+                        onTap: () => _performPetAction(PetActionState.playBall),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: _CareActionButton(
+                        id: 'sleep',
+                        label: _petAction == PetActionState.sleep
+                            ? 'Wake Up'
+                            : 'Sleep',
+                        icon: _petAction == PetActionState.sleep
+                            ? Icons.wb_sunny_rounded
+                            : Icons.nightlight_round,
+                        color: const Color(0xFF818CF8),
+                        value: _energy,
+                        onTap: () => _performPetAction(
+                          _petAction == PetActionState.sleep
+                              ? PetActionState.idle
+                              : PetActionState.sleep,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 6),
+
+                // (b) Pet Care Panel — ince şerit, varsayılan kapalı.
                 GlassCard(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  radius: 24,
-                  opacity: 0.82,
-                  blur: 22,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 10, 8),
+                  radius: 16,
+                  opacity: 0.86,
+                  blur: 18,
                   child: Column(
                     children: [
                       GestureDetector(
-                        onTap: () => setState(() => _isPetCarePanelExpanded = !_isPetCarePanelExpanded),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setState(() =>
+                            _isPetCarePanelExpanded = !_isPetCarePanelExpanded),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
                               child: Row(
                                 children: [
-                                  const Icon(Icons.pets, color: Color(0xFF5A449C), size: 18),
-                                  const SizedBox(width: 4),
+                                  const Icon(Icons.pets,
+                                      color: Color(0xFF5A449C), size: 16),
+                                  const SizedBox(width: 5),
                                   Expanded(
                                     child: Text(
-                                      'Lumi Bakım',
+                                      'Lumi Care',
                                       style: AppText.nunito(
-                                        fontSize: 14.5,
+                                        fontSize: 13.5,
                                         fontWeight: FontWeight.w800,
                                         color: const Color(0xFF1E2E3D),
                                       ),
@@ -779,130 +998,82 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 ],
                               ),
                             ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _VitalMiniPill(emoji: "🍎", value: _hunger, color: const Color(0xFFFB923C)),
-                                _VitalMiniPill(emoji: "💧", value: _hydration, color: const Color(0xFF38BDF8)),
-                                _VitalMiniPill(emoji: "💖", value: _happiness, color: const Color(0xFFF472B6)),
-                                _VitalMiniPill(emoji: "⚡", value: _energy, color: const Color(0xFFFBBF24)),
-                                Icon(
-                                  _isPetCarePanelExpanded ? Icons.expand_less : Icons.expand_more,
-                                  color: Colors.black54,
-                                ),
-                              ],
+                            const SizedBox(width: 6),
+                            _VitalBar(
+                              icon: Icons.restaurant_rounded,
+                              value: _hunger,
+                              color: const Color(0xFFFB923C),
+                              onTap: () => setState(() =>
+                                  _isPetCarePanelExpanded =
+                                      !_isPetCarePanelExpanded),
+                            ),
+                            const SizedBox(width: 6),
+                            _VitalBar(
+                              icon: Icons.water_drop_rounded,
+                              value: _hydration,
+                              color: const Color(0xFF38BDF8),
+                              onTap: () => setState(() =>
+                                  _isPetCarePanelExpanded =
+                                      !_isPetCarePanelExpanded),
+                            ),
+                            const SizedBox(width: 6),
+                            _VitalBar(
+                              icon: Icons.favorite_rounded,
+                              value: _happiness,
+                              color: const Color(0xFFF472B6),
+                              onTap: () => setState(() =>
+                                  _isPetCarePanelExpanded =
+                                      !_isPetCarePanelExpanded),
+                            ),
+                            const SizedBox(width: 6),
+                            _VitalBar(
+                              icon: Icons.bolt_rounded,
+                              value: _energy,
+                              color: const Color(0xFFFBBF24),
+                              onTap: () => setState(() =>
+                                  _isPetCarePanelExpanded =
+                                      !_isPetCarePanelExpanded),
+                            ),
+                            Icon(
+                              _isPetCarePanelExpanded
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              size: 20,
+                              color: Colors.black54,
                             ),
                           ],
                         ),
                       ),
+                      // Detayı buton grubunda: sayısal vital dökümü.
                       if (_isPetCarePanelExpanded) ...[
-                        const SizedBox(height: 12),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _PetCareButton(emoji: "🍎", label: "Besle", color: const Color(0xFFFB923C), onTap: () => _performPetAction(PetActionState.eat)),
-                              const SizedBox(width: 8),
-                              _PetCareButton(emoji: "💧", label: "Su Ver", color: const Color(0xFF38BDF8), onTap: () => _performPetAction(PetActionState.drink)),
-                              const SizedBox(width: 8),
-                              _PetCareButton(emoji: "💖", label: "Sev", color: const Color(0xFFF472B6), onTap: () => _performPetAction(PetActionState.petted)),
-                              const SizedBox(width: 8),
-                              _PetCareButton(emoji: "⚽", label: "Top Oyna", color: const Color(0xFFFBBF24), onTap: () => _performPetAction(PetActionState.playBall)),
-                              const SizedBox(width: 8),
-                              _PetCareButton(emoji: "🏃", label: "Koştur", color: const Color(0xFF34D399), onTap: () => _performPetAction(PetActionState.run)),
-                              const SizedBox(width: 8),
-                              _PetCareButton(emoji: "🫧", label: "Fırçala", color: const Color(0xFFA78BFA), onTap: () => _performPetAction(PetActionState.groom)),
-                              const SizedBox(width: 8),
-                              _PetCareButton(
-                                emoji: _petAction == PetActionState.sleep ? "☀️" : "🌙",
-                                label: _petAction == PetActionState.sleep ? "Uyandır" : "Uyut",
-                                color: const Color(0xFF818CF8),
-                                onTap: () => _performPetAction(
-                                  _petAction == PetActionState.sleep
-                                      ? PetActionState.idle
-                                      : PetActionState.sleep,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 8),
-
-                // Tasks Panel
-                GlassCard(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  radius: 28,
-                  opacity: 0.85,
-                  blur: 22,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GestureDetector(
-                        onTap: () => setState(() => _isHomeTasksExpanded = !_isHomeTasksExpanded),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        const SizedBox(height: 10),
+                        Row(
                           children: [
-                            Text(
-                              'Günlük Görevler',
-                              style: AppText.nunito(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF1E2E3D),
-                              ),
+                            Expanded(
+                              child: _VitalStat(
+                                  label: 'Hunger',
+                                  value: _hunger,
+                                  color: const Color(0xFFFB923C)),
                             ),
-                            Row(
-                              children: [
-                                Text(
-                                  "Tümünü Gör",
-                                  style: AppText.nunito(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF5A449C),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  _isHomeTasksExpanded ? Icons.expand_less : Icons.expand_more,
-                                  color: Colors.black54,
-                                ),
-                              ],
+                            Expanded(
+                              child: _VitalStat(
+                                  label: 'Water',
+                                  value: _hydration,
+                                  color: const Color(0xFF38BDF8)),
+                            ),
+                            Expanded(
+                              child: _VitalStat(
+                                  label: 'Happiness',
+                                  value: _happiness,
+                                  color: const Color(0xFFF472B6)),
+                            ),
+                            Expanded(
+                              child: _VitalStat(
+                                  label: 'Energy',
+                                  value: _energy,
+                                  color: const Color(0xFFFBBF24)),
                             ),
                           ],
-                        ),
-                      ),
-                      if (_isHomeTasksExpanded) ...[
-                        const SizedBox(height: 14),
-                        const _TaskRow(
-                          icon: Icons.water_drop_outlined,
-                          iconColor: Color(0xFF4FB3F0),
-                          title: 'Su iç',
-                          progressText: '1/1',
-                          progress: 1.0,
-                          barColor: Color(0xFF75D973),
-                        ),
-                        const SizedBox(height: 12),
-                        const _TaskRow(
-                          icon: Icons.directions_run_rounded,
-                          iconColor: Color(0xFF58C77A),
-                          title: '10.000 adım at',
-                          progressText: '3.2k / 10k',
-                          progress: 0.32,
-                          barColor: Color(0xFF4FB3F0),
-                        ),
-                        const SizedBox(height: 12),
-                        const _TaskRow(
-                          icon: Icons.air_rounded,
-                          iconColor: Color(0xFF9B6FE0),
-                          title: 'Nefes egzersizi yap',
-                          progressText: '0/1',
-                          progress: 0.0,
-                          barColor: Color(0xFF9B6FE0),
                         ),
                       ],
                     ],
@@ -912,6 +1083,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -923,11 +1095,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 class _SideActionButton extends StatefulWidget {
   final IconData icon;
   final Color color;
+
+  /// İkonun altındaki küçük etiket (10.5px).
+  final String? label;
   final VoidCallback onTap;
 
   const _SideActionButton({
     required this.icon,
     required this.color,
+    this.label,
     required this.onTap,
   });
 
@@ -959,7 +1135,7 @@ class _SideActionButtonState extends State<_SideActionButton>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final button = GestureDetector(
       onTapDown: (_) => _scaleController.reverse(),
       onTapUp: (_) {
         _scaleController.forward();
@@ -969,128 +1145,57 @@ class _SideActionButtonState extends State<_SideActionButton>
       child: ScaleTransition(
         scale: _scaleController,
         child: Container(
-          width: 48,
-          height: 48,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withValues(alpha: 0.45),
-                Colors.white.withValues(alpha: 0.2),
+                Colors.white.withValues(alpha: 0.55),
+                Colors.white.withValues(alpha: 0.28),
               ],
             ),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: Colors.white.withValues(alpha: 0.65),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: widget.color.withValues(alpha: 0.25),
+                color: widget.color.withValues(alpha: 0.3),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                color: Colors.black.withValues(alpha: 0.12),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),
             ],
           ),
-          child: Icon(widget.icon, color: Colors.white, size: 24),
+          child: Icon(widget.icon, color: Colors.white, size: 20),
         ),
       ),
     );
-  }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Task Row
-// ─────────────────────────────────────────────────────────────────────────────
-class _TaskRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String progressText;
-  final double progress;
-  final Color barColor;
+    if (widget.label == null) return button;
 
-  const _TaskRow({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.progressText,
-    required this.progress,
-    required this.barColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: iconColor.withValues(alpha: 0.15),
-              ),
-              child: Icon(icon, color: iconColor, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: AppText.nunito(
-                  fontSize: 15.5,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1E2E3D),
-                ),
-              ),
-            ),
-            Text(
-              progressText,
-              style: AppText.nunito(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF5D6470),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(5),
-          child: SizedBox(
-            height: 7,
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                ),
-                FractionallySizedBox(
-                  widthFactor: progress.clamp(0.0, 1.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          barColor,
-                          barColor.withValues(alpha: 0.8),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        button,
+        const SizedBox(height: 2),
+        Text(
+          widget.label!,
+          style: AppText.nunito(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            shadows: const [
+              Shadow(
+                  color: Colors.black54, blurRadius: 5, offset: Offset(0, 1)),
+            ],
           ),
         ),
       ],
@@ -1099,95 +1204,206 @@ class _TaskRow extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Vital Mini Pill
+// Care Action Button — Lumi'nin altındaki 4 net butondan biri
 // ─────────────────────────────────────────────────────────────────────────────
-class _VitalMiniPill extends StatelessWidget {
-  final String emoji;
-  final double value;
+class _CareActionButton extends StatelessWidget {
+  final String id;
+  final String label;
+  final IconData icon;
   final Color color;
 
-  const _VitalMiniPill({
-    required this.emoji,
-    required this.value,
+  /// Butonun bağlı olduğu vital değer (0.0–1.0). Lumi Care şeridindeki
+  /// değerle aynı kaynaktan gelir, etiketin yanında % olarak gösterilir.
+  final double value;
+
+  final VoidCallback onTap;
+
+  const _CareActionButton({
+    required this.id,
+    required this.label,
+    required this.icon,
     required this.color,
+    required this.value,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4.0),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 10)),
-          const SizedBox(width: 2),
-          Container(
-            width: 20,
-            height: 6,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(3),
+    // Opak zemin (cam değil): gökyüzünde net okunur. Dört buton da
+    // birebir aynı stildedir — büyüme/küçülme ve renk farkı yok.
+    // Tek satır etiket ("Feed %84") taşmayı önler.
+    final pct = (value.clamp(0.0, 1.0) * 100).round();
+    return Semantics(
+      button: true,
+      identifier: id,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: color.withValues(alpha: 0.35),
+              width: 1.2,
             ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: value.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.10),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(height: 2),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      style: AppText.nunito(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1E2E3D),
+                      ),
+                    ),
+                    Text(
+                      ' %$pct',
+                      maxLines: 1,
+                      style: AppText.nunito(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF5D6470),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pet Care Button
+// Vital Bar — emoji hap yerine ikon + kalın bar; eşik altında kırmızı.
 // ─────────────────────────────────────────────────────────────────────────────
-class _PetCareButton extends StatelessWidget {
-  final String emoji;
-  final String label;
+class _VitalBar extends StatelessWidget {
+  final IconData icon;
+  final double value;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
-  const _PetCareButton({
-    required this.emoji,
-    required this.label,
+  const _VitalBar({
+    required this.icon,
+    required this.value,
     required this.color,
-    required this.onTap,
+    this.onTap,
+  });
+
+  /// Bu değerin altında vital "kritik" sayılır ve kırmızıya döner.
+  static const double dangerBelow = 0.25;
+
+  @override
+  Widget build(BuildContext context) {
+    final critical = value <= dangerBelow;
+    final barColor = critical ? const Color(0xFFEF4444) : color;
+
+    final bar = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: barColor),
+        const SizedBox(width: 3),
+        Container(
+          width: 26,
+          height: 7,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE2E8F0),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: value.clamp(0.0, 1.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: barColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (onTap == null) return bar;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: bar,
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Vital Stat — şerit detayındaki sayısal döküm (Açlık %84 …)
+// ─────────────────────────────────────────────────────────────────────────────
+class _VitalStat extends StatelessWidget {
+  final String label;
+  final double value;
+  final Color color;
+
+  const _VitalStat({
+    required this.label,
+    required this.value,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.45)),
+    final critical = value <= 0.25;
+    final pct = (value * 100).round();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(
+            color: critical ? const Color(0xFFEF4444) : color,
+            shape: BoxShape.circle,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 14)),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: AppText.nunito(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF1E2E3D),
-              ),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            '$label %$pct',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppText.nunito(
+              fontSize: 10.5,
+              fontWeight: critical ? FontWeight.w800 : FontWeight.w700,
+              color:
+                  critical ? const Color(0xFFDC2626) : const Color(0xFF5D6470),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

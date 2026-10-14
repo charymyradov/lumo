@@ -12,7 +12,7 @@ class NotificationFilterTabs extends StatelessWidget {
     required this.onChanged,
   });
 
-  static const labels = ['Tümü', 'Sistem', 'Sosyal', 'Ödül'];
+  static const labels = ['All', 'System', 'Social', 'Reward'];
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +38,7 @@ class NotificationFilterTabs extends StatelessWidget {
                           colors: [Color(0xFF8A6FD1), Color(0xFF6D4FC2)],
                         )
                       : null,
-                  color: selected
-                      ? null
-                      : Colors.white.withValues(alpha: 0.75),
+                  color: selected ? null : Colors.white.withValues(alpha: 0.75),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: selected
@@ -70,9 +68,7 @@ class NotificationFilterTabs extends StatelessWidget {
                   style: AppText.nunito(
                     fontSize: 13.5,
                     fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                    color: selected
-                        ? Colors.white
-                        : const Color(0xFF6B5B95),
+                    color: selected ? Colors.white : const Color(0xFF6B5B95),
                   ),
                 ),
               ),

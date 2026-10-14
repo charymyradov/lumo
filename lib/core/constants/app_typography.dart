@@ -24,7 +24,6 @@ class AppTypography {
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
       );
-
   static TextStyle get bodyLarge => AppText.nunito(
         fontSize: 16,
         fontWeight: FontWeight.w500,

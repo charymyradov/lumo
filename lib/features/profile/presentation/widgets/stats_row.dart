@@ -25,9 +25,9 @@ class StatsRow extends StatelessWidget {
         children: [
           _cell('🪙', '$coins', 'Coin'),
           _divider(),
-          _cell('🔥', '$streak', 'Gün Serisi'),
+          _cell('🔥', '$streak', 'Day Streak'),
           _divider(),
-          _cell('💜', '$pets', 'Pet Bağı'),
+          _cell('💜', '$pets', 'Pet Bond'),
         ],
       ),
     );

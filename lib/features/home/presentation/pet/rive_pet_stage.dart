@@ -28,6 +28,8 @@ class RivePetStage extends StatefulWidget {
     required this.isNight,
     required this.onPetTappedOrStroked,
     required this.onGroundTapped,
+    this.speechText = '',
+    this.speechVisible = false,
     this.lookX = 0,
     this.lookY = 0,
   });
@@ -43,6 +45,10 @@ class RivePetStage extends StatefulWidget {
   final bool isNight;
   final VoidCallback onPetTappedOrStroked;
   final void Function(PetActionState moveMode, String message) onGroundTapped;
+
+  /// Kafa üstü balon (fallback sahneyle aynı sözleşme).
+  final String speechText;
+  final bool speechVisible;
 
   /// Göz takibi girdileri (rehber §6.4): -1..1 aralığında sürükleme konumu.
   final double lookX;
@@ -157,7 +163,7 @@ class _RivePetStageState extends State<RivePetStage> {
       onTap: widget.onPetTappedOrStroked,
       onDoubleTap: () => widget.onGroundTapped(
         PetActionState.run,
-        'Çift dokundun! Lumi neşeyle koşup zıplıyor! 🏃‍♂️✨',
+        'Double tap! Lumi is joyfully running and jumping! 🏃‍♂️✨',
       ),
       child: Stack(
         fit: StackFit.expand,
@@ -168,8 +174,7 @@ class _RivePetStageState extends State<RivePetStage> {
                 RivePetStage.assetPath,
                 riveFactory: Factory.rive,
               ),
-              artboardSelector:
-                  const ArtboardNamed(RivePetStage.artboardName),
+              artboardSelector: const ArtboardNamed(RivePetStage.artboardName),
               stateMachineSelector:
                   const StateMachineNamed(RivePetStage.stateMachineName),
               controller: _buildController,
@@ -201,6 +206,8 @@ class _RivePetStageState extends State<RivePetStage> {
       equippedItems: widget.equippedItems,
       reduceMotion: widget.reduceMotion,
       isNight: widget.isNight,
+      speechText: widget.speechText,
+      speechVisible: widget.speechVisible,
       onPetTappedOrStroked: widget.onPetTappedOrStroked,
       onGroundTapped: widget.onGroundTapped,
     );

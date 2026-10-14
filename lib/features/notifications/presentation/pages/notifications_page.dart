@@ -42,64 +42,67 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   int _filter = 0;
+  final Set<int> _read = {};
 
   static const _items = [
     _NotifData(
-      title: 'Görev hatırlatıcı',
-      body: 'Su içmeyi unuttun',
-      time: '2 dk önce',
+      title: 'Quest reminder',
+      body: 'You forgot to drink water',
+      time: '2 min ago',
       icon: Icons.emoji_events_rounded,
       iconColor: Color(0xFFF59E0B),
       iconBg: Color(0xFFFFF3D6),
       emoji: '💧',
-      category: 'Sistem',
+      category: 'System',
     ),
     _NotifData(
-      title: 'Motivasyon',
-      body: 'Sen başarabilirsin!',
-      time: '1 saat önce',
+      title: 'Motivation',
+      body: 'You can do it!',
+      time: '1 hour ago',
       icon: Icons.favorite_rounded,
       iconColor: Color(0xFFF0608A),
       iconBg: Color(0xFFFFE0E8),
       emoji: '💖',
-      category: 'Sistem',
+      category: 'System',
     ),
     _NotifData(
-      title: 'Pet sesi',
-      body: 'Lumi seni özledi!',
-      time: '5 saat önce',
+      title: 'Pet sound',
+      body: 'Lumi misses you!',
+      time: '5 hours ago',
       icon: Icons.pets_rounded,
       iconColor: Color(0xFFE05C7A),
       iconBg: Color(0xFFFFE4E4),
       emoji: '🐾',
-      category: 'Sosyal',
+      category: 'Social',
     ),
     _NotifData(
-      title: 'Ödül',
-      body: 'Günlük ödülünü aldın!',
-      time: '1 gün önce',
+      title: 'Reward',
+      body: 'You claimed your daily reward!',
+      time: '1 day ago',
       icon: Icons.card_giftcard_rounded,
       iconColor: Color(0xFFF59E0B),
       iconBg: Color(0xFFFFF0C8),
       emoji: '🎁',
-      category: 'Ödül',
+      category: 'Reward',
     ),
     _NotifData(
-      title: 'Arkadaş',
-      body: 'Ayşe senin oyun alanını ziyaret etti.',
-      time: '1 gün önce',
+      title: 'Friend',
+      body: 'Ayşe visited your play area.',
+      time: '1 day ago',
       icon: Icons.person_rounded,
       iconColor: Color(0xFFE05C5C),
       iconBg: Color(0xFFFFE0DC),
       emoji: '🎈',
-      category: 'Sosyal',
+      category: 'Social',
     ),
   ];
 
-  List<_NotifData> get _filtered {
-    if (_filter == 0) return _items;
-    final cat = ['Tümü', 'Sistem', 'Sosyal', 'Ödül'][_filter];
-    return _items.where((e) => e.category == cat).toList();
+  List<({int index, _NotifData data})> get _filtered {
+    final all = _items.indexed.map((e) => (index: e.$1, data: e.$2)).toList();
+    final unread = all.where((e) => !_read.contains(e.index)).toList();
+    if (_filter == 0) return unread;
+    final cat = ['All', 'System', 'Social', 'Reward'][_filter];
+    return unread.where((e) => e.data.category == cat).toList();
   }
 
   @override
@@ -168,7 +171,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Bildirimler',
+                        'Notifications',
                         style: AppText.nunito(
                           fontSize: 21,
                           fontWeight: FontWeight.w900,
@@ -192,46 +195,94 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
                 // Liste
                 Expanded(
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) {
-                      final n = _filtered[i];
-                      return NotificationTile(
-                        title: n.title,
-                        body: n.body,
-                        timeAgo: n.time,
-                        icon: n.icon,
-                        iconColor: n.iconColor,
-                        iconBg: n.iconBg,
-                        emoji: n.emoji,
-                      );
-                    },
-                  ),
+                  child: _filtered.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🎉', style: TextStyle(fontSize: 44)),
+                              const SizedBox(height: 10),
+                              Text(
+                                'All caught up!',
+                                style: AppText.nunito(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                'No unread notifications.',
+                                style: AppText.nunito(
+                                  fontSize: 13.5,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: _filtered.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, i) {
+                            final entry = _filtered[i];
+                            final n = entry.data;
+                            return Dismissible(
+                              key: ValueKey('notif_${entry.index}'),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF22C55E),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: const Icon(Icons.check_rounded,
+                                    color: Colors.white),
+                              ),
+                              onDismissed: (_) =>
+                                  setState(() => _read.add(entry.index)),
+                              child: NotificationTile(
+                                title: n.title,
+                                body: n.body,
+                                timeAgo: n.time,
+                                icon: n.icon,
+                                iconColor: n.iconColor,
+                                iconBg: n.iconBg,
+                                emoji: n.emoji,
+                              ),
+                            );
+                          },
+                        ),
                 ),
 
                 // Tümünü oku
                 Center(
                   child: TextButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Tüm bildirimler okundu.'),
-                          duration: Duration(milliseconds: 900),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                    onPressed: _filtered.isEmpty
+                        ? null
+                        : () {
+                            setState(() =>
+                                _read.addAll(_filtered.map((e) => e.index)));
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content:
+                                    Text('All notifications marked as read.'),
+                                duration: Duration(milliseconds: 900),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
                     icon: const Icon(
                       Icons.mark_email_read_outlined,
                       size: 17,
                       color: Color(0xFF7B5EA7),
                     ),
                     label: Text(
-                      "Tümünü oku",
+                      "Mark all read",
                       style: AppText.nunito(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,

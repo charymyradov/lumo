@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:lumo/core/constants/app_text.dart';
+import 'package:lumo/core/constants/app_typography.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
 
 class SplashPage extends StatefulWidget {
@@ -12,8 +12,7 @@ class SplashPage extends StatefulWidget {
   State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage>
-    with TickerProviderStateMixin {
+class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   late AnimationController _logoController;
   late AnimationController _textController;
   late AnimationController _shimmerController;
@@ -25,6 +24,8 @@ class _SplashPageState extends State<SplashPage>
   late Animation<Offset> _textSlide;
   late Animation<double> _taglineOpacity;
   late Animation<Offset> _taglineSlide;
+
+  bool _disposed = false;
 
   @override
   void initState() {
@@ -90,20 +91,24 @@ class _SplashPageState extends State<SplashPage>
   }
 
   Future<void> _startAnimations() async {
+    // Test ortamında dispose sonrası sarkan Timer bırakmamak için
+    // her adımda mounted + _disposed kontrolü yapılır.
     await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
+    if (!mounted || _disposed) return;
     _logoController.forward();
 
     await Future.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
+    if (!mounted || _disposed) return;
     _textController.forward();
 
     await Future.delayed(const Duration(milliseconds: 2200));
-    if (mounted) widget.onFinished();
+    if (!mounted || _disposed) return;
+    widget.onFinished();
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _logoController.dispose();
     _textController.dispose();
     _shimmerController.dispose();
@@ -176,8 +181,10 @@ class _SplashPageState extends State<SplashPage>
                           return ShaderMask(
                             shaderCallback: (bounds) {
                               return LinearGradient(
-                                begin: Alignment(-1 + _shimmerController.value * 3, 0),
-                                end: Alignment(0 + _shimmerController.value * 3, 0),
+                                begin: Alignment(
+                                    -1 + _shimmerController.value * 3, 0),
+                                end: Alignment(
+                                    0 + _shimmerController.value * 3, 0),
                                 colors: const [
                                   Color(0xFFFFF9C4),
                                   Color(0xFFFFD700),
@@ -202,10 +209,8 @@ class _SplashPageState extends State<SplashPage>
                           position: _textSlide,
                           child: Text(
                             'lumo',
-                            style: AppText.nunito(
+                            style: AppTypography.displayLarge.copyWith(
                               fontSize: 56,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
                               letterSpacing: 2,
                               shadows: [
                                 const Shadow(
@@ -231,11 +236,7 @@ class _SplashPageState extends State<SplashPage>
                     position: _taglineSlide,
                     child: Text(
                       'Small steps, big happiness.',
-                      style: AppText.nunito(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white70,
-                        fontStyle: FontStyle.italic,
+                      style: AppTypography.taglineText.copyWith(
                         letterSpacing: 0.5,
                       ),
                       textAlign: TextAlign.center,

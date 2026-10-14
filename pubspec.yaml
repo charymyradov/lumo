@@ -11,9 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  google_fonts: ^6.2.1
   flutter_bloc: ^9.1.1
   equatable: ^3.0.0
+  get_it: ^8.0.3
   lottie: ^3.6.1
   rive: ^0.14.11
   shared_preferences: ^2.5.6
@@ -32,8 +32,19 @@ flutter:
     - assets/lumo_images/
     - assets/lumo_json/
     - assets/pets/
-    - assets/icons/
     - assets/navbar/
     - assets/sounds/
     - assets/rive/
     - assets/fonts/
+
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Nunito-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Nunito-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito-Italic.ttf
+          style: italic

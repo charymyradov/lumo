@@ -12,7 +12,7 @@ class DurationSelector extends StatelessWidget {
     required this.onChanged,
   });
 
-  static const labels = ['1 dk', '3 dk', '5 dk', '10 dk'];
+  static const labels = ['1 min', '3 min', '5 min', '10 min'];
 
   @override
   Widget build(BuildContext context) {

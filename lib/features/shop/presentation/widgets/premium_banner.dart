@@ -44,7 +44,7 @@ class PremiumBanner extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Dizil Kraslaslar ve Temiyer',
+            'Exclusive perks and cosmetics',
             style: AppText.nunito(
               fontSize: 13.5,
               fontWeight: FontWeight.w500,
@@ -55,8 +55,7 @@ class PremiumBanner extends StatelessWidget {
           GestureDetector(
             onTap: onTap,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFFFF9A3D), Color(0xFFFF6B35)],
@@ -71,7 +70,7 @@ class PremiumBanner extends StatelessWidget {
                 ],
               ),
               child: Text(
-                "Premium'a Geç",
+                "Go Premium",
                 style: AppText.nunito(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,

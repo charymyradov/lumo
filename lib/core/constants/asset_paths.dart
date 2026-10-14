@@ -4,7 +4,6 @@ class AssetPaths {
   // Splash / onboarding backgrounds
   static const String splash1 = 'assets/lumo_images/splash_1.png';
   static const String splashBg = 'assets/lumo_images/splash1.jpg';
-  static const String splash1Jpg = 'assets/lumo_images/splash1.jpg';
   static const String splash2Jpg = 'assets/lumo_images/splash2.jpg';
   static const String nefesBg = 'assets/lumo_images/nefes.png';
   static const String dayMeadow = 'assets/lumo_images/day_meadow.jpg';

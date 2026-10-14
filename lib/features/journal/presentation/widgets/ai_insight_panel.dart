@@ -39,7 +39,7 @@ class AiInsightPanel extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'AI İçgörün',
+                'AI Insight',
                 style: AppText.nunito(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -99,7 +99,15 @@ class AiInsightPanel extends StatelessWidget {
 
 /// Alt mini desen kartı — görselin en altındaki küçük şerit.
 class AiPatternStrip extends StatelessWidget {
-  const AiPatternStrip({super.key});
+  final int entryCount;
+  final String message;
+
+  const AiPatternStrip({
+    super.key,
+    this.entryCount = 3,
+    this.message =
+        "You're being very kind to yourself today! This balanced mood is a good foundation for reaching out too.",
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +131,7 @@ class AiPatternStrip extends StatelessWidget {
                       size: 12, color: AppColors.textSecondary),
                   const SizedBox(width: 4),
                   Text(
-                    '3 / 10',
+                    '$entryCount / 10',
                     style: AppText.nunito(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -138,7 +146,7 @@ class AiPatternStrip extends StatelessWidget {
                   const Icon(Icons.play_arrow_rounded,
                       size: 14, color: AppColors.primary),
                   Text(
-                    'AI İçgörün Desenleri',
+                    'AI Insight Patterns',
                     style: AppText.nunito(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
@@ -152,7 +160,7 @@ class AiPatternStrip extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Bugün kendine karşı çok naziksin! Bu dengeli ruh halin, yardım için de iyi bir temel oluşturuyor.',
+              message,
               style: AppText.nunito(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,

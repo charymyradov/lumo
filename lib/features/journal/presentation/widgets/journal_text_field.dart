@@ -31,7 +31,7 @@ class JournalTextField extends StatelessWidget {
           color: AppColors.textPrimary,
         ),
         decoration: InputDecoration(
-          hintText: 'Bugün neler hissettin?',
+          hintText: 'How did you feel today?',
           hintStyle: AppText.nunito(
             fontSize: 15,
             fontWeight: FontWeight.w400,

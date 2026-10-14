@@ -18,13 +18,11 @@ class UserProfile {
   /// Gemini'ye gönderilecek kişiselleştirme metni. Boşsa '' döner.
   String questContext() {
     final parts = <String>[];
-    if (name.isNotEmpty) parts.add("Kullanıcının adı: $name.");
+    if (name.isNotEmpty) parts.add("User's name: $name.");
     if (goals.isNotEmpty) {
-      parts.add(
-          'Hedefleri: ${goals.map(UserProfileStore.goalLabel).join(', ')}.');
+      parts.add('Goals: ${goals.map(UserProfileStore.goalLabel).join(', ')}.');
     }
-    parts.add(
-        'Evcil hayvanı: ${UserProfileStore.speciesLabel(speciesId)}.');
+    parts.add('Pet: ${UserProfileStore.speciesLabel(speciesId)}.');
     return parts.join(' ');
   }
 
@@ -49,19 +47,19 @@ class UserProfileStore {
 
   /// Hedef kimliği → quest bağlamında kullanılacak Türkçe ad.
   static String goalLabel(String id) => switch (id) {
-        'stress' => 'stres azaltma',
-        'sleep' => 'daha iyi uyku',
-        'focus' => 'odaklanma',
-        'motivation' => 'motivasyon',
-        'meditation' => 'meditasyon',
+        'stress' => 'stress reduction',
+        'sleep' => 'better sleep',
+        'focus' => 'focus',
+        'motivation' => 'motivation',
+        'meditation' => 'meditation',
         _ => id,
       };
 
   static String speciesLabel(String id) => switch (id) {
-        'fox' => 'tilki',
-        'cat' => 'kedi',
-        'bunny' => 'tavşan',
-        _ => 'tilki',
+        'fox' => 'fox',
+        'cat' => 'cat',
+        'bunny' => 'bunny',
+        _ => 'fox',
       };
 
   static String speciesForMascot(int index) {

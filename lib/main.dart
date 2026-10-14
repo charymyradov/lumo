@@ -4,11 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/router/main_shell.dart';
 import 'package:lumo/core/services/app_prefs.dart';
+import 'package:lumo/core/di/injection.dart';
 import 'package:lumo/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:lumo/features/splash/presentation/pages/splash_page.dart';
 import 'package:lumo/features/onboarding/presentation/pages/onboarding_flow_page.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(
@@ -17,6 +18,7 @@ void main() {
       statusBarIconBrightness: Brightness.light,
     ),
   );
+  await configureDependencies();
   runApp(const LumoApp());
 }
 
@@ -81,8 +83,10 @@ class _AppRootState extends State<AppRoot> {
   @override
   Widget build(BuildContext context) {
     // Disk okunurken kısa splash göster (boş ekran çakmasını önler).
+    // Bu dal yalnızca ilk açılışta görülür; onFinished boş bırakılmaz,
+    // bayrak yüklenince zaten gerçek dallara geçilir.
     if (_onboardingCompleted == null) {
-      return SplashPage(onFinished: () {});
+      return SplashPage(onFinished: _onSplashFinished);
     }
     if (_onboardingCompleted == true) {
       return const MainShell();

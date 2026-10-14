@@ -42,10 +42,12 @@ class PetRigSimulationState {
   }
 
   // Locomotion -----------------------------------------------------------
+  // Lumi alt-ortada durur (0.5, ~0.64); yatay merkez hiç kaymaz, dikey
+  // konum sadece derinlik/koşu hissi için değişir.
   double petX = 0.50;
-  double petY = 0.68;
+  double petY = 0.64;
   double targetX = 0.50;
-  double targetY = 0.68;
+  double targetY = 0.64;
   double facingDir = 1;
   double smoothFacing = 1;
   PetActionState locomotionMode = PetActionState.idle;
@@ -74,6 +76,13 @@ class PetRigSimulationState {
   double tapRingX = 0.5;
   double tapRingY = 0.68;
   double tapRingAlpha = 0;
+
+  // Speech bubble ----------------------------------------------------------
+  // Widget katmanı yazıyı yazar; simülasyon görünürlüğü yaşlandırır.
+  // speechAge < 0.4: belirme, > 2.8: kaybolma, aralarda tam görünür.
+  String speechText = '';
+  double speechAlpha = 0;
+  double speechAge = 99;
 
   late final List<MicroParticle> particles;
 
@@ -205,8 +214,7 @@ void stepPetSimulation(
   sim.blinkTimer -= dt;
   if (sim.blinkTimer <= 0) {
     sim.isBlinking = !sim.isBlinking;
-    sim.blinkTimer =
-        sim.isBlinking ? 0.13 : _rng.nextDouble() * 3.0 + 2.0;
+    sim.blinkTimer = sim.isBlinking ? 0.13 : _rng.nextDouble() * 3.0 + 2.0;
   }
 
   // Idle çeşitliliği: etrafa bakma / kulak seğirmesi hissi (rehber §6.9).
@@ -223,6 +231,25 @@ void stepPetSimulation(
   // Tap ring -------------------------------------------------------------
   if (sim.tapRingAlpha > 0) {
     sim.tapRingAlpha = clampDouble(sim.tapRingAlpha - dt * 1.6, 0, 1);
+  }
+
+  // Speech bubble: belir (0.4sn) → tut → kaybol (2.8sn sonrası 0.5sn).
+  if (sim.speechText.isNotEmpty) {
+    sim.speechAge += dt;
+    const fadeIn = 0.4, holdUntil = 2.8, fadeOut = 0.5;
+    if (sim.speechAge < fadeIn) {
+      sim.speechAlpha = clampDouble(sim.speechAge / fadeIn, 0, 1);
+    } else if (sim.speechAge <= holdUntil) {
+      sim.speechAlpha = 1;
+    } else if (sim.speechAge <= holdUntil + fadeOut) {
+      sim.speechAlpha =
+          clampDouble(1 - (sim.speechAge - holdUntil) / fadeOut, 0, 1);
+    } else {
+      sim.speechAlpha = 0;
+      sim.speechText = '';
+    }
+  } else {
+    sim.speechAlpha = 0;
   }
 
   // Particles ------------------------------------------------------------
@@ -246,9 +273,8 @@ void stepPetSimulation(
       y: sim.petY - 0.04 - _rng.nextDouble() * 0.08,
       vx: behind * 0.02,
       vy: -0.03 - _rng.nextDouble() * 0.02,
-      color: _rng.nextBool()
-          ? const Color(0xFF8B5CF6)
-          : const Color(0xFFC4B5FD),
+      color:
+          _rng.nextBool() ? const Color(0xFF8B5CF6) : const Color(0xFFC4B5FD),
       isHeart: false,
       isShard: true,
       life: 1.0,
@@ -348,10 +374,12 @@ void stepPetSimulation(
         if (sim.idleWanderCooldown <= 0) {
           sim.idleWanderCooldown = _rng.nextDouble() * 4.5 + 3.5;
           if (_rng.nextDouble() < 0.72) {
+            // Dar dikey bant: Lumi alt-ortadan çok fazla uzaklaşmaz.
             sim.targetX = _rng.nextDouble() * 0.56 + 0.22;
-            sim.targetY = _rng.nextDouble() * 0.10 + 0.63;
-            sim.locomotionMode =
-                (sim.targetX - sim.petX).abs() > 0.28 ? PetActionState.run : PetActionState.walk;
+            sim.targetY = _rng.nextDouble() * 0.07 + 0.60;
+            sim.locomotionMode = (sim.targetX - sim.petX).abs() > 0.28
+                ? PetActionState.run
+                : PetActionState.walk;
           } else {
             sim.jumpPhase = 0.01;
           }
@@ -360,5 +388,6 @@ void stepPetSimulation(
     }
   }
 
-  sim.smoothFacing += (sim.facingDir - sim.smoothFacing) * math.min(dt * 10.0, 1.0);
+  sim.smoothFacing +=
+      (sim.facingDir - sim.smoothFacing) * math.min(dt * 10.0, 1.0);
 }

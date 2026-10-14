@@ -104,7 +104,8 @@ class _FallingLeavesState extends State<FallingLeaves>
         shade: i >= 14 ? 4 : rng.nextInt(4),
         alpha: 0.55 + rng.nextDouble() * 0.35,
       );
-    })..sort((a, b) => a.size.compareTo(b.size)); // küçük (uzak) önce
+    })
+      ..sort((a, b) => a.size.compareTo(b.size)); // küçük (uzak) önce
 
     _motes = List.generate(10, (_) {
       return _MoteSpec(
@@ -183,14 +184,13 @@ class _LeavesPainter extends CustomPainter {
       final fall = ((t * leaf.speed + leaf.yOff) % 1.15) - 0.075;
       if (fall < -0.06 || fall > 1.06) continue;
       final y = fall * h;
-      final x =
-          (leaf.x0 + math.sin(t * leaf.swayFreq * _twoPi + leaf.phase) *
-              leaf.swayAmp) *
+      final x = (leaf.x0 +
+              math.sin(t * leaf.swayFreq * _twoPi + leaf.phase) *
+                  leaf.swayAmp) *
           w;
       if (x < -24 || x > w + 24) continue;
-      final rot =
-          leaf.phase + math.sin(t * leaf.rockFreq * _twoPi + leaf.phase) *
-              leaf.rockAmp;
+      final rot = leaf.phase +
+          math.sin(t * leaf.rockFreq * _twoPi + leaf.phase) * leaf.rockAmp;
       final s = leaf.size;
 
       var base = _FallingLeavesState._dayShades[leaf.shade];
@@ -208,8 +208,7 @@ class _LeavesPainter extends CustomPainter {
         ..quadraticBezierTo(-s * 0.85, -s * 0.2, 0, -s)
         ..close();
       canvas.drawPath(path, fill);
-      canvas.drawLine(
-          Offset(0, -s * 0.65), Offset(0, s * 0.65), vein);
+      canvas.drawLine(Offset(0, -s * 0.65), Offset(0, s * 0.65), vein);
       canvas.restore();
     }
   }

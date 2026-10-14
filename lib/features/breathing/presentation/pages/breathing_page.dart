@@ -2,8 +2,13 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
+import 'package:lumo/core/di/injection.dart';
+import 'package:lumo/core/services/haptic_service.dart';
+import 'package:lumo/features/breathing/presentation/bloc/breathing_bloc.dart';
+import 'package:lumo/features/breathing/presentation/bloc/breathing_event.dart';
 import 'package:lumo/features/breathing/presentation/widgets/breathing_orb.dart';
 import 'package:lumo/features/breathing/presentation/widgets/duration_selector.dart';
 import 'package:lumo/features/breathing/presentation/widgets/pattern_selector.dart';
@@ -12,11 +17,24 @@ import 'package:lumo/features/breathing/presentation/widgets/sound_toggle.dart';
 /// 7. Nefes Egzersizi — görseldeki gibi:
 /// nefes.png • geri + başlık • cam küre (smooth nefes) •
 /// "Nefes al / 4 saniye" • desen sırası • süre sırası • ses hapı.
-class BreathingPage extends StatefulWidget {
+/// Ödül ekonomisi [BreathingBloc]'te; animasyon/ses UI'da kalır.
+class BreathingPage extends StatelessWidget {
   const BreathingPage({super.key});
 
   @override
-  State<BreathingPage> createState() => _BreathingPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<BreathingBloc>(),
+      child: const _BreathingView(),
+    );
+  }
+}
+
+class _BreathingView extends StatefulWidget {
+  const _BreathingView();
+
+  @override
+  State<_BreathingView> createState() => _BreathingPageState();
 }
 
 enum _Phase { inhale, hold, exhale, holdAfterExhale }
@@ -38,13 +56,15 @@ class _BreathingPattern {
 }
 
 const _patterns = [
-  _BreathingPattern(title: '4-7-8 Nefes', inhale: 4, hold: 7, exhale: 8),
-  _BreathingPattern(title: 'Kutu Nefes', inhale: 4, hold: 4, exhale: 4, holdAfter: 4),
-  _BreathingPattern(title: 'Derin Nefes', inhale: 4, hold: 2, exhale: 6),
+  _BreathingPattern(title: '4-7-8 Breathing', inhale: 4, hold: 7, exhale: 8),
+  _BreathingPattern(
+      title: 'Box Breathing', inhale: 4, hold: 4, exhale: 4, holdAfter: 4),
+  _BreathingPattern(title: 'Deep Breathing', inhale: 4, hold: 2, exhale: 6),
 ];
 
 /// Nefes ekranındaki ortam sesleri — `assets/sounds/` içindeki gerçek mp3'ler.
-/// `asset` null ise ses kapalıdır.
+/// `asset` null ise ses kapalıdır. Yollar [AssetPaths] üzerinden gelir
+/// (`assets/` önekli); çalarken `audioplayers` kuralı gereği önek soyulur.
 class _BreathSound {
   final String title;
   final String? asset;
@@ -53,14 +73,14 @@ class _BreathSound {
 }
 
 const _sounds = [
-  _BreathSound('Orman', 'sounds/bird.mp3'),
-  _BreathSound('Deniz', 'sounds/water.mp3'),
-  _BreathSound('Yağmur', 'sounds/rain.mp3'),
-  _BreathSound('Ateş', 'sounds/fire.mp3'),
-  _BreathSound('Kapalı', null),
+  _BreathSound('Forest', AssetPaths.soundForest),
+  _BreathSound('Ocean', AssetPaths.soundSea),
+  _BreathSound('Rain', AssetPaths.soundRain),
+  _BreathSound('Fire', AssetPaths.soundFire),
+  _BreathSound('Off', null),
 ];
 
-class _BreathingPageState extends State<BreathingPage>
+class _BreathingPageState extends State<_BreathingView>
     with SingleTickerProviderStateMixin {
   int _patternIndex = 2; // görselde "Derin Nefes"
   int _durationIndex = 0; // görselde "1 dk" vurgulu
@@ -68,6 +88,16 @@ class _BreathingPageState extends State<BreathingPage>
 
   _Phase _phase = _Phase.inhale;
   int _secondsLeft = 4;
+
+  /// Seçili süre dolduğunda oturum biter + küçük ödül verilir.
+  static const _durations = [
+    Duration(minutes: 1),
+    Duration(minutes: 3),
+    Duration(minutes: 5),
+    Duration(minutes: 10),
+  ];
+  Timer? _sessionTimer;
+  bool _sessionDone = false;
 
   /// 0.15 → 1.0 arası SÜREKLİ nefes değeri. Faz süresi boyunca
   /// animateTo ile akıcı sürülür; basamaklı setState yok.
@@ -93,12 +123,50 @@ class _BreathingPageState extends State<BreathingPage>
     _audio.setReleaseMode(ReleaseMode.loop).catchError((_) {});
     _playCurrentSound();
     _startLoop();
+    _startSessionTimer();
+  }
+
+  void _startSessionTimer() {
+    _sessionTimer?.cancel();
+    _sessionDone = false;
+    _sessionTimer = Timer(_durations[_durationIndex], () {
+      if (!mounted || _sessionDone) return;
+      _sessionDone = true;
+      _completeSession();
+    });
+  }
+
+  void _completeSession() {
+    HapticService.success();
+    context.read<BreathingBloc>().add(const BreathingSessionCompleted());
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Session complete 🧘'),
+        content: const Text(
+            'Nice breathing! +15 coins, +8 XP earned. Lumi feels calmer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Continue'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context)
+              ..pop()
+              ..pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void dispose() {
     _cycleToken++;
     _countdown?.cancel();
+    _sessionTimer?.cancel();
     _breath.dispose();
     _audio.dispose();
     super.dispose();
@@ -178,12 +246,12 @@ class _BreathingPageState extends State<BreathingPage>
   String get _phaseText {
     switch (_phase) {
       case _Phase.inhale:
-        return 'Nefes al';
+        return 'Breathe in';
       case _Phase.hold:
       case _Phase.holdAfterExhale:
-        return 'Tut';
+        return 'Hold';
       case _Phase.exhale:
-        return 'Nefes ver';
+        return 'Breathe out';
     }
   }
 
@@ -193,7 +261,7 @@ class _BreathingPageState extends State<BreathingPage>
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Ses: ${_sounds[_soundIndex].title}'),
+        content: Text('Sound: ${_sounds[_soundIndex].title}'),
         duration: const Duration(milliseconds: 900),
         behavior: SnackBarBehavior.floating,
       ),
@@ -210,7 +278,8 @@ class _BreathingPageState extends State<BreathingPage>
       }
       await _audio.stop();
       await _audio.setVolume(0.6);
-      await _audio.play(AssetSource(asset));
+      // audioplayers AssetSource yolu `assets/` önekini istemez.
+      await _audio.play(AssetSource(asset.replaceFirst('assets/', '')));
     } catch (_) {
       // Ses çalamazsa sessizce geç — nefes döngüsü kırılmaz.
     }
@@ -304,7 +373,7 @@ class _BreathingPageState extends State<BreathingPage>
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
                   child: Text(
-                    '$_secondsLeft saniye',
+                    '$_secondsLeft sec',
                     key: ValueKey<int>(_secondsLeft),
                     style: AppText.nunito(
                       fontSize: 16,
@@ -336,13 +405,17 @@ class _BreathingPageState extends State<BreathingPage>
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: DurationSelector(
                     selectedIndex: _durationIndex,
-                    onChanged: (i) => setState(() => _durationIndex = i),
+                    onChanged: (i) {
+                      setState(() => _durationIndex = i);
+                      _startSessionTimer();
+                    },
                   ),
                 ),
                 const SizedBox(height: 12),
 
                 // ── Ses hapı ──
-                SoundToggle(sound: _sounds[_soundIndex].title, onTap: _cycleSound),
+                SoundToggle(
+                    sound: _sounds[_soundIndex].title, onTap: _cycleSound),
 
                 // Kedi illüstrasyonu nefes.png'nin altında kalıyor
                 const Spacer(),

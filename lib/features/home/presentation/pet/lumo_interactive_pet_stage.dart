@@ -30,6 +30,8 @@ class LumoInteractivePetStage extends StatefulWidget {
     required this.equippedItems,
     required this.reduceMotion,
     this.isNight = false,
+    this.speechText = '',
+    this.speechVisible = false,
     required this.onPetTappedOrStroked,
     required this.onGroundTapped,
   });
@@ -48,6 +50,12 @@ class LumoInteractivePetStage extends StatefulWidget {
   /// Night mode tint for the pet (4 - ışık tepkisi).
   final bool isNight;
 
+  /// Konuşma balonu metni. Değişince sayaç sıfırlanır, balon ~3 sn görünür.
+  final String speechText;
+
+  /// Balonun görünmesine izin var mı (sahne her zaman çizer, sim karar verir).
+  final bool speechVisible;
+
   /// Called when the pet itself (body/head) was tapped or stroked.
   final VoidCallback onPetTappedOrStroked;
 
@@ -56,12 +64,14 @@ class LumoInteractivePetStage extends StatefulWidget {
   final void Function(PetActionState moveMode, String message) onGroundTapped;
 
   @override
-  State<LumoInteractivePetStage> createState() => _LumoInteractivePetStageState();
+  State<LumoInteractivePetStage> createState() =>
+      _LumoInteractivePetStageState();
 }
 
 class _LumoInteractivePetStageState extends State<LumoInteractivePetStage>
     with TickerProviderStateMixin {
   static const String debugTag = 'lumo_interactive_pet_stage';
+  static const Duration _frameInterval = Duration(microseconds: 22222);
 
   late final PetRigSimulationState _sim;
   late final EquippedFlags _flags;
@@ -73,6 +83,13 @@ class _LumoInteractivePetStageState extends State<LumoInteractivePetStage>
 
   Duration _lastElapsed = Duration.zero;
   bool _hasLastElapsed = false;
+  Duration _frameThrottleElapsed = Duration.zero;
+  Duration _elapsedSinceLastFrame = Duration.zero;
+  bool _returningFromGroundTap = false;
+  bool _groundTapReturnStarted = false;
+  double _groundTapWait = 0;
+  double _groundTapOriginX = 0.5;
+  double _groundTapOriginY = 0.64;
 
   @override
   void initState() {
@@ -91,6 +108,12 @@ class _LumoInteractivePetStageState extends State<LumoInteractivePetStage>
     }
     if (!identical(oldWidget.equippedItems, widget.equippedItems)) {
       _flags.updateFrom(widget.equippedItems);
+    }
+    if (oldWidget.speechText != widget.speechText ||
+        oldWidget.speechVisible != widget.speechVisible) {
+      _sim.speechText = widget.speechVisible ? widget.speechText : '';
+      _sim.speechAge = 0;
+      _sim.speechAlpha = 0;
     }
   }
 
@@ -139,28 +162,71 @@ class _LumoInteractivePetStageState extends State<LumoInteractivePetStage>
     if (actionState == PetActionState.jump) {
       sim.jumpPhase = 0.01;
     }
-    if (actionState == PetActionState.eat || actionState == PetActionState.drink) {
+    if (actionState == PetActionState.eat ||
+        actionState == PetActionState.drink) {
       sim.targetX = clampDouble(sim.petX + 0.08 * sim.facingDir, 0.28, 0.72);
       sim.targetY = 0.70;
     }
   }
 
   void _onTick(Duration elapsed) {
-    final double dt;
     if (!_hasLastElapsed) {
-      dt = 0.016;
+      _lastElapsed = elapsed;
       _hasLastElapsed = true;
-    } else {
-      dt = clampDouble(
-        (elapsed - _lastElapsed).inMicroseconds / 1000000,
-        0.001,
-        0.05,
-      );
+      return;
     }
+
+    final frameDelta = elapsed - _lastElapsed;
     _lastElapsed = elapsed;
+    _frameThrottleElapsed += frameDelta;
+    _elapsedSinceLastFrame += frameDelta;
+    if (_frameThrottleElapsed < _frameInterval) return;
+
+    _frameThrottleElapsed = Duration(
+      microseconds:
+          _frameThrottleElapsed.inMicroseconds % _frameInterval.inMicroseconds,
+    );
+    final dt = clampDouble(
+      _elapsedSinceLastFrame.inMicroseconds / 1000000,
+      0.001,
+      0.05,
+    );
+    _elapsedSinceLastFrame = Duration.zero;
 
     stepPetSimulation(_sim, dt, reduceMotion: widget.reduceMotion);
+    _updateGroundTapReturn(dt);
     _repaint.value++;
+  }
+
+  void _updateGroundTapReturn(double dt) {
+    if (!_returningFromGroundTap) return;
+
+    if (!_groundTapReturnStarted) {
+      if (_sim.isTravelling) return;
+
+      _groundTapWait += dt;
+      if (_groundTapWait < 4.5) return;
+
+      _groundTapReturnStarted = true;
+      _sim.targetX = _groundTapOriginX;
+      _sim.targetY = _groundTapOriginY;
+      final distance = Offset(
+        _sim.petX - _groundTapOriginX,
+        _sim.petY - _groundTapOriginY,
+      ).distance;
+      _sim.locomotionMode =
+          distance > 0.25 ? PetActionState.run : PetActionState.walk;
+      _sim.actionTimer = 0;
+      return;
+    }
+
+    if (!_sim.isTravelling) {
+      _sim.locomotionMode = PetActionState.idle;
+      _sim.idleWanderCooldown = 3.5;
+      _returningFromGroundTap = false;
+      _groundTapReturnStarted = false;
+      _groundTapWait = 0;
+    }
   }
 
   // ── Gestures ────────────────────────────────────────────────────────────
@@ -175,7 +241,8 @@ class _LumoInteractivePetStageState extends State<LumoInteractivePetStage>
     if (size.isEmpty) return;
 
     final nx = clampDouble(position.dx / size.width, 0.15, 0.85);
-    final ny = clampDouble(position.dy / size.height, 0.55, 0.76);
+    final ny = clampDouble(position.dy / size.height, 0.58, 0.70);
+    _startGroundTapReturn();
     _sim.targetX = nx;
     _sim.targetY = ny;
     _sim.tapRingX = nx;
@@ -186,7 +253,7 @@ class _LumoInteractivePetStageState extends State<LumoInteractivePetStage>
 
     widget.onGroundTapped(
       PetActionState.run,
-      'Çift dokundun! Lumi neşeyle koşup zıplıyor! 🏃‍♂️✨',
+      'Double tap! Lumi is joyfully running and jumping! 🏃‍♂️✨',
     );
   }
 
@@ -206,23 +273,34 @@ class _LumoInteractivePetStageState extends State<LumoInteractivePetStage>
 
     if (ny >= 0.44 && ny <= 0.82) {
       final clampedX = clampDouble(nx, 0.18, 0.82);
-      final clampedY = clampDouble(ny, 0.58, 0.74);
+      final clampedY = clampDouble(ny, 0.58, 0.70);
       final runNeeded = (clampedX - _sim.petX).abs() > 0.25;
+      _startGroundTapReturn();
       _sim.targetX = clampedX;
       _sim.targetY = clampedY;
       _sim.tapRingX = clampedX;
       _sim.tapRingY = clampedY;
       _sim.tapRingAlpha = 1;
       _sim.lookOffsetX = clampDouble(clampedX - _sim.petX, -0.3, 0.3);
-      _sim.locomotionMode = runNeeded ? PetActionState.run : PetActionState.walk;
+      _sim.locomotionMode =
+          runNeeded ? PetActionState.run : PetActionState.walk;
 
       widget.onGroundTapped(
         _sim.locomotionMode,
         runNeeded
-            ? 'Lumi işaretlediğin yere doğru koşuyor! 🐾💨'
-            : 'Lumi yanına doğru yürüyor! 🌸',
+            ? 'Lumi is running toward the spot you tapped! 🐾💨'
+            : 'Lumi is walking over to you! 🌸',
       );
     }
+  }
+
+  void _startGroundTapReturn() {
+    _groundTapOriginX = _sim.petX;
+    _groundTapOriginY = _sim.petY;
+    _groundTapWait = 0;
+    _groundTapReturnStarted = false;
+    _returningFromGroundTap = true;
+    _sim.idleWanderCooldown = 30;
   }
 
   /// Port of the Kotlin tap-on-pet branch (5 hearts + happy reaction).

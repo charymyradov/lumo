@@ -48,7 +48,7 @@ class StreakBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$days günlük seri!',
+                      '$days day streak!',
                       style: AppText.nunito(
                         fontSize: 17.5,
                         fontWeight: FontWeight.w900,
@@ -57,7 +57,7 @@ class StreakBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Harika gidiyorsun!',
+                      'You are doing great!',
                       style: AppText.nunito(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w500,

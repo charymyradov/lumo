@@ -1,8 +1,6 @@
-import 'package:flutter/material.dart';
-
 /// Shop / wardrobe category of a cosmetic.
 ///
-/// Direct port of `ShopCategory` from `lumo_kot/.../model/LumoModels.kt`.
+/// Pure-Dart domain enum — no Flutter imports allowed here.
 enum ShopCategory {
   outfit('Kıyafet', 'Outfit'),
   accessory('Aksesuar', 'Accessory'),
@@ -27,7 +25,7 @@ class CosmeticItem {
     required this.price,
     required this.category,
     required this.iconKey,
-    required this.accentColor,
+    required this.accentColorValue,
     this.isDailyDeal = false,
     this.isOwned = false,
     this.isEquipped = false,
@@ -39,7 +37,10 @@ class CosmeticItem {
   final int price;
   final ShopCategory category;
   final String iconKey;
-  final Color accentColor;
+
+  /// ARGB renk (örn. 0xFFF472B6). Domain saf Dart kalmalı diye [Color]
+  /// yerine int tutulur; UI katmanındaki extension `accentColor`'a çevirir.
+  final int accentColorValue;
   final bool isDailyDeal;
   final bool isOwned;
 
@@ -61,7 +62,7 @@ class CosmeticItem {
       price: price,
       category: category,
       iconKey: iconKey,
-      accentColor: accentColor,
+      accentColorValue: accentColorValue,
       isDailyDeal: isDailyDeal ?? this.isDailyDeal,
       isOwned: isOwned ?? this.isOwned,
       isEquipped: isEquipped ?? this.isEquipped,
@@ -79,36 +80,33 @@ class CosmeticItem {
       other.isPlacedOnStage == isPlacedOnStage;
 
   @override
-  int get hashCode => Object.hash(id, isDailyDeal, isOwned, isEquipped, isPlacedOnStage);
+  int get hashCode =>
+      Object.hash(id, isDailyDeal, isOwned, isEquipped, isPlacedOnStage);
 
   @override
-  String toString() => 'CosmeticItem($id, equipped: $isEquipped, onStage: $isPlacedOnStage)';
+  String toString() =>
+      'CosmeticItem($id, equipped: $isEquipped, onStage: $isPlacedOnStage)';
 }
 
 /// Starter wardrobe used until a real repository is wired up.
 ///
 /// Mirrors `defaultCosmeticItems()` from `LumoViewModel.kt`.
-final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>[
+///
+/// Not: `item_cloud_bed` (yumurta bulut) ve `item_lantern` (sarı sopa/peri
+/// feneri) sahnede işlevsiz durduğu için varsayılanlardan çıkarıldı —
+/// painter'daki `_drawStageCloudBed` / `_drawStageFairyLantern` korunuyor,
+/// ileride mağazadan yerleştirildiklerinde yeniden devreye girer.
+final List<CosmeticItem> defaultCosmeticItems =
+    List.unmodifiable(<CosmeticItem>[
   const CosmeticItem(
     id: 'item_pink_cat_costume',
     nameTr: 'Pembe Kedi Kostümü',
     price: 180,
     category: ShopCategory.outfit,
     iconKey: 'pink_cat_hood',
-    accentColor: Color(0xFFF472B6),
+    accentColorValue: 0xFFF472B6,
     isDailyDeal: true,
     isOwned: true,
-  ),
-  const CosmeticItem(
-    id: 'item_cloud_bed',
-    nameTr: 'Bulut Yatağı',
-    price: 150,
-    category: ShopCategory.furniture,
-    iconKey: 'cloud_bed',
-    accentColor: Color(0xFF93C5FD),
-    isDailyDeal: true,
-    isOwned: true,
-    isPlacedOnStage: true,
   ),
   const CosmeticItem(
     id: 'item_mushroom_hat',
@@ -116,7 +114,7 @@ final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>
     price: 90,
     category: ShopCategory.outfit,
     iconKey: 'mushroom_hat',
-    accentColor: Color(0xFFF87171),
+    accentColorValue: 0xFFF87171,
     isOwned: true,
   ),
   const CosmeticItem(
@@ -125,7 +123,7 @@ final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>
     price: 140,
     category: ShopCategory.outfit,
     iconKey: 'wizard_hat',
-    accentColor: Color(0xFF60A5FA),
+    accentColorValue: 0xFF60A5FA,
     isOwned: true,
   ),
   const CosmeticItem(
@@ -134,7 +132,7 @@ final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>
     price: 210,
     category: ShopCategory.accessory,
     iconKey: 'gold_crown',
-    accentColor: Color(0xFFFBBF24),
+    accentColorValue: 0xFFFBBF24,
     isOwned: true,
     isEquipped: true,
   ),
@@ -144,7 +142,7 @@ final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>
     price: 165,
     category: ShopCategory.accessory,
     iconKey: 'butterfly_wings',
-    accentColor: Color(0xFF38BDF8),
+    accentColorValue: 0xFF38BDF8,
     isOwned: true,
     isEquipped: false,
   ),
@@ -154,7 +152,7 @@ final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>
     price: 110,
     category: ShopCategory.accessory,
     iconKey: 'flower_wreath',
-    accentColor: Color(0xFFF472B6),
+    accentColorValue: 0xFFF472B6,
     isOwned: true,
   ),
   const CosmeticItem(
@@ -163,7 +161,7 @@ final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>
     price: 120,
     category: ShopCategory.accessory,
     iconKey: 'star_glasses',
-    accentColor: Color(0xFFC084FC),
+    accentColorValue: 0xFFC084FC,
     isOwned: true,
   ),
   const CosmeticItem(
@@ -172,18 +170,8 @@ final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>
     price: 75,
     category: ShopCategory.accessory,
     iconKey: 'ribbon_bow',
-    accentColor: Color(0xFFFB7185),
+    accentColorValue: 0xFFFB7185,
     isOwned: true,
-  ),
-  const CosmeticItem(
-    id: 'item_lantern',
-    nameTr: 'Peri Feneri',
-    price: 130,
-    category: ShopCategory.furniture,
-    iconKey: 'fairy_lantern',
-    accentColor: Color(0xFFFBBF24),
-    isOwned: true,
-    isPlacedOnStage: true,
   ),
   const CosmeticItem(
     id: 'item_cozy_scarf',
@@ -191,7 +179,7 @@ final List<CosmeticItem> defaultCosmeticItems = List.unmodifiable(<CosmeticItem>
     price: 95,
     category: ShopCategory.outfit,
     iconKey: 'cozy_scarf',
-    accentColor: Color(0xFFA78BFA),
+    accentColorValue: 0xFFA78BFA,
     isOwned: true,
   ),
 ]);

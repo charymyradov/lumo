@@ -32,8 +32,10 @@ class _OnboardingFlowPageState extends State<OnboardingFlowPage> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<OnboardingBloc, OnboardingState>(
-      listenWhen: (previous, current) => previous.currentPage != current.currentPage,
+      listenWhen: (previous, current) =>
+          previous.currentPage != current.currentPage,
       listener: (context, state) {
+        FocusManager.instance.primaryFocus?.unfocus();
         _pageController.animateToPage(
           state.currentPage,
           duration: const Duration(milliseconds: 500),
@@ -44,7 +46,8 @@ class _OnboardingFlowPageState extends State<OnboardingFlowPage> {
         return Scaffold(
           body: PageView(
             controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(), // Prevent manual swipe
+            physics:
+                const NeverScrollableScrollPhysics(), // Prevent manual swipe
             children: const [
               WelcomePage(),
               GoalPage(),

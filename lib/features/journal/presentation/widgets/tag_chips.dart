@@ -32,7 +32,8 @@ class TagChips extends StatelessWidget {
               filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppColors.primary.withValues(alpha: 0.85)
