@@ -1,8 +1,7 @@
 class AiConfig {
   AiConfig._();
 
-  static const String _embeddedKey =
-      'AQ.Ab8RN6I9mGrK05cZTiiHxbo77Qd6G3vqcWDcnvVcJfSqO98Cig';
+  static const String _embeddedKey = '';
 
   /// Önce `--dart-define=GEMINI_API_KEY`, yoksa gömülü sabit kullanılır.
   static String get geminiApiKey {

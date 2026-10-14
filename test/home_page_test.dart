@@ -12,9 +12,17 @@ void main() {
   Future<void> pumpHome(
     WidgetTester tester, {
     Map<String, Object> preferences = const {},
+    bool tickerEnabled = true,
   }) async {
     SharedPreferences.setMockInitialValues(preferences);
-    await tester.pumpWidget(const MaterialApp(home: HomePage()));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TickerMode(
+          enabled: tickerEnabled,
+          child: const HomePage(),
+        ),
+      ),
+    );
     // Profil yüklemesi + ilk kare.
     await tester.pump(const Duration(milliseconds: 100));
   }
@@ -60,6 +68,38 @@ void main() {
     await tester.tap(find.text('Feed'));
     await tester.pump();
     expect(find.text(' %77'), findsOneWidget);
+
+    expect(tester.takeException(), isNull);
+    await disposeHome(tester);
+  });
+
+  testWidgets('Home timers pause while its tab is hidden', (tester) async {
+    await pumpHome(
+      tester,
+      tickerEnabled: false,
+      preferences: {
+        'pet_hunger_v1': 0.50,
+        'pet_water_v1': 0.78,
+        'pet_happy_v1': 0.50,
+        'pet_energy_v1': 0.88,
+      },
+    );
+
+    await tester.tap(find.text('Lumi Care'));
+    await tester.pump(const Duration(seconds: 11));
+    expect(find.text('Hunger %50'), findsOneWidget);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: TickerMode(
+          enabled: true,
+          child: HomePage(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(seconds: 11));
+    expect(find.text('Hunger %54'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
     await disposeHome(tester);

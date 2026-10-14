@@ -31,6 +31,8 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final appTickerEnabled = TickerMode.valuesOf(context).enabled;
+
     return Scaffold(
       extendBody: true,
       body: IndexedStack(
@@ -39,7 +41,7 @@ class _MainShellState extends State<MainShell> {
           for (var i = 0; i < _pages.length; i++)
             RepaintBoundary(
               child: TickerMode(
-                enabled: i == _currentIndex,
+                enabled: appTickerEnabled && i == _currentIndex,
                 child: _pages[i],
               ),
             ),

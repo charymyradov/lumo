@@ -53,15 +53,30 @@ class AppRoot extends StatefulWidget {
   State<AppRoot> createState() => _AppRootState();
 }
 
-class _AppRootState extends State<AppRoot> {
+class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
   /// null = henüz diskten okunmadı.
   bool? _onboardingCompleted;
   bool _showSplash = true;
+  bool _isAppResumed = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadOnboardingFlag();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isResumed = state == AppLifecycleState.resumed;
+    if (_isAppResumed == isResumed) return;
+    setState(() => _isAppResumed = isResumed);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _loadOnboardingFlag() async {
@@ -82,20 +97,25 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   Widget build(BuildContext context) {
+    final Widget content;
     // Disk okunurken kısa splash göster (boş ekran çakmasını önler).
     // Bu dal yalnızca ilk açılışta görülür; onFinished boş bırakılmaz,
     // bayrak yüklenince zaten gerçek dallara geçilir.
     if (_onboardingCompleted == null) {
-      return SplashPage(onFinished: _onSplashFinished);
+      content = SplashPage(onFinished: _onSplashFinished);
+    } else if (_onboardingCompleted == true) {
+      content = const MainShell();
+    } else {
+      content = AnimatedSwitcher(
+        duration: const Duration(milliseconds: 800),
+        child: _showSplash
+            ? SplashPage(onFinished: _onSplashFinished)
+            : const OnboardingFlowPage(),
+      );
     }
-    if (_onboardingCompleted == true) {
-      return const MainShell();
-    }
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 800),
-      child: _showSplash
-          ? SplashPage(onFinished: _onSplashFinished)
-          : const OnboardingFlowPage(),
+    return TickerMode(
+      enabled: _isAppResumed,
+      child: content,
     );
   }
 }
