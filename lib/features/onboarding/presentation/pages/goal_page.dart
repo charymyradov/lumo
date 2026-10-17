@@ -96,6 +96,10 @@ class _GoalPageState extends State<GoalPage>
                 AssetPaths.splashBg,
                 fit: BoxFit.cover,
                 alignment: Alignment.center,
+                filterQuality: FilterQuality.low,
+                gaplessPlayback: true,
+                cacheWidth: 1080,
+                excludeFromSemantics: true,
               ),
               // Yumuşak perde: üst şeffaf -> orta açık sis -> alt hafif lavanta.
               const DecoratedBox(

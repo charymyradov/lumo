@@ -11,9 +11,16 @@ class SplashBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset(AssetPaths.splash1, fit: BoxFit.cover),
-        Container(
-          decoration: const BoxDecoration(
+        Image.asset(
+          AssetPaths.splash1,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.low,
+          gaplessPlayback: true,
+          cacheWidth: 1080,
+          excludeFromSemantics: true,
+        ),
+        const DecoratedBox(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,

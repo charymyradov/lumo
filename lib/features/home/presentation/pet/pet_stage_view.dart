@@ -49,6 +49,9 @@ class PetStageView extends StatelessWidget {
             isNight: isNight,
             repaint: repaint,
           ),
+          // Katman önbelleğe alınır ve her kare değişeceği bilinir.
+          isComplex: true,
+          willChange: true,
           child: const SizedBox.expand(),
         ),
       ),

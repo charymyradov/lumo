@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
+import 'package:lumo/core/router/app_routes.dart';
 import 'package:lumo/core/router/main_shell.dart';
 import 'package:lumo/core/di/injection.dart';
 import 'package:lumo/core/repositories/user_profile_repository.dart';
@@ -158,11 +159,7 @@ class _PermissionsPageState extends State<PermissionsPage>
 
                           if (!context.mounted) return;
                           // Enter the main app shell (bottom nav + tabs)
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (_) => const MainShell(),
-                            ),
-                          );
+                          pushReplacementAppPage(context, const MainShell());
                         },
                       ),
                     ],

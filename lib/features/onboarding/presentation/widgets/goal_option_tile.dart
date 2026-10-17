@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_typography.dart';
 import 'package:lumo/core/constants/app_colors.dart';
+import 'package:lumo/shared/widgets/lumo_tap.dart';
 
 class GoalOptionTile extends StatelessWidget {
   final String label;
@@ -20,7 +21,7 @@ class GoalOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return LumoTap(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -39,6 +40,7 @@ class GoalOptionTile extends StatelessWidget {
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 8,
+              spreadRadius: 0,
               offset: const Offset(0, 2),
             ),
           ],
@@ -64,8 +66,11 @@ class GoalOptionTile extends StatelessWidget {
             ),
             const Spacer(),
             if (isSelected)
-              const Icon(Icons.check_circle_rounded,
-                  color: AppColors.primary, size: 22),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
           ],
         ),
       ),

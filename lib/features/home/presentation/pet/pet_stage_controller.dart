@@ -30,6 +30,9 @@ class PetStageController {
   /// ~45 fps cap, mirroring the Kotlin frame throttle.
   static const Duration frameInterval = Duration(microseconds: 22222);
 
+  /// Yavaşlatılmış hareket modunda 30 fps yeterlidir (pil dostu).
+  static const Duration reduceMotionInterval = Duration(milliseconds: 33);
+
   final PetRigSimulationState sim = PetRigSimulationState();
   final EquippedFlags flags = EquippedFlags();
   final GroundTapReturnTracker returnTracker = GroundTapReturnTracker();
@@ -70,11 +73,13 @@ class PetStageController {
     _lastElapsed = elapsed;
     _frameThrottleElapsed += frameDelta;
     _elapsedSinceLastFrame += frameDelta;
-    if (_frameThrottleElapsed < frameInterval) return;
+    // reduceMotion'da 30fps yeterli — gereksiz tick'ler atılır.
+    final interval = reduceMotion ? reduceMotionInterval : frameInterval;
+    if (_frameThrottleElapsed < interval) return;
 
     _frameThrottleElapsed = Duration(
       microseconds:
-          _frameThrottleElapsed.inMicroseconds % frameInterval.inMicroseconds,
+          _frameThrottleElapsed.inMicroseconds % interval.inMicroseconds,
     );
     final dt = clampDouble(
       _elapsedSinceLastFrame.inMicroseconds / 1000000,

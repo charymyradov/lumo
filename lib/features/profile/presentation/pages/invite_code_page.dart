@@ -46,10 +46,19 @@ class _InviteCodePageState extends State<InviteCodePage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Image.asset(AssetPaths.splash2Jpg, fit: BoxFit.cover),
+          RepaintBoundary(
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Image.asset(
+                  AssetPaths.splash2Jpg,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.low,
+                  gaplessPlayback: true,
+                  cacheWidth: 1080,
+                  excludeFromSemantics: true,
+                ),
+              ),
             ),
           ),
           const DecoratedBox(

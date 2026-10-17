@@ -33,7 +33,8 @@ class StreakBanner extends StatelessWidget {
       boxShadow: [
         BoxShadow(
           color: const Color(0xFFF0A828).withValues(alpha: 0.18),
-          blurRadius: 24,
+          blurRadius: 12,
+          spreadRadius: 0,
           offset: const Offset(0, 8),
         ),
       ],
@@ -80,8 +81,8 @@ class StreakBanner extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.7),
                 ),
                 AnimatedFractionallySizedBox(
-                  duration: const Duration(milliseconds: 600),
-                  curve: Curves.easeOutCubic,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
                   alignment: Alignment.centerLeft,
                   widthFactor: progress.clamp(0.0, 1.0),
                   child: Container(

@@ -107,7 +107,19 @@ class _AppRootState extends State<AppRoot> with WidgetsBindingObserver {
       content = const MainShell();
     } else {
       content = AnimatedSwitcher(
-        duration: const Duration(milliseconds: 800),
+        duration: const Duration(milliseconds: 350),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeOut,
+        layoutBuilder: (currentChild, previousChildren) => Stack(
+          children: <Widget>[
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        ),
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
         child: _showSplash
             ? SplashPage(onFinished: _onSplashFinished)
             : const OnboardingFlowPage(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
+import 'package:lumo/shared/widgets/lumo_tap.dart';
 
 class MoodOption {
   final String label;
@@ -41,8 +42,7 @@ class MoodSelector extends StatelessWidget {
         final mood = journalMoods[index];
         final selected = index == selectedIndex;
         return Expanded(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          child: LumoTap(
             onTap: () => onChanged(index),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -70,16 +70,20 @@ class MoodSelector extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: mood.color
-                            .withValues(alpha: selected ? 0.45 : 0.25),
-                        blurRadius: selected ? 16 : 10,
+                        color: mood.color.withValues(
+                          alpha: selected ? 0.45 : 0.25,
+                        ),
+                        blurRadius: selected ? 12 : 10,
+                        spreadRadius: 0,
                         offset: const Offset(0, 5),
                       ),
                     ],
                   ),
                   child: Center(
-                    child:
-                        Text(mood.emoji, style: const TextStyle(fontSize: 28)),
+                    child: Text(
+                      mood.emoji,
+                      style: const TextStyle(fontSize: 28),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 6),

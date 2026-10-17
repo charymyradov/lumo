@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_text.dart';
+import 'package:lumo/shared/widgets/lumo_tap.dart';
 
 /// Görseldeki üst hap filtre: [Tümü] [Sistem] [Sosyal] [Ödül]
 class NotificationFilterTabs extends StatelessWidget {
@@ -24,7 +25,7 @@ class NotificationFilterTabs extends StatelessWidget {
           final selected = i == selectedIndex;
           return Padding(
             padding: EdgeInsets.only(right: i == labels.length - 1 ? 0 : 10),
-            child: GestureDetector(
+            child: LumoTap(
               onTap: () => onChanged(i),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
@@ -52,6 +53,7 @@ class NotificationFilterTabs extends StatelessWidget {
                               0xFF7B5EA7,
                             ).withValues(alpha: 0.35),
                             blurRadius: 12,
+                            spreadRadius: 0,
                             offset: const Offset(0, 4),
                           ),
                         ]
@@ -59,6 +61,7 @@ class NotificationFilterTabs extends StatelessWidget {
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 8,
+                            spreadRadius: 0,
                             offset: const Offset(0, 3),
                           ),
                         ],

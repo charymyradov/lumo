@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
+import 'package:lumo/core/router/app_routes.dart';
 import 'package:lumo/core/di/injection.dart';
 import 'package:lumo/core/repositories/user_profile_repository.dart';
 import 'package:lumo/core/repositories/wallet_repository.dart';
@@ -57,23 +58,16 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _openInvite() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const InviteCodePage()),
-    );
+    pushAppPage(context, const InviteCodePage());
   }
 
   void _openSettings() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const SettingsPage()),
-    );
+    await pushAppPage(context, const SettingsPage());
     _reload();
   }
 
   void _openFriendsSoon() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-          builder: (_) => const PlaceholderPage(title: 'Friends')),
-    );
+    pushAppPage(context, const PlaceholderPage(title: 'Friends'));
   }
 
   @override
@@ -87,6 +81,10 @@ class _ProfilePageState extends State<ProfilePage> {
           AssetPaths.dayMeadow,
           fit: BoxFit.cover,
           alignment: Alignment.topCenter,
+          filterQuality: FilterQuality.low,
+          gaplessPlayback: true,
+          cacheWidth: 1080,
+          excludeFromSemantics: true,
         ),
         const DecoratedBox(
           decoration: BoxDecoration(

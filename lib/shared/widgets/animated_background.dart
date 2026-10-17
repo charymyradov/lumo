@@ -18,6 +18,9 @@ class BlurredMeadowBackground extends StatelessWidget {
   final double blurSigma;
   final double paleOpacity;
 
+  /// En pahalı blur bile tek karede takılmasın diye 12'ye sabitlenir.
+  double get _clampedSigma => blurSigma > 12 ? 12 : blurSigma;
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -27,19 +30,28 @@ class BlurredMeadowBackground extends StatelessWidget {
           imagePath,
           fit: BoxFit.cover,
           alignment: Alignment.center,
-          errorBuilder: (_, __, ___) => Container(
-            color: const Color(0xFFEDE7FF),
+          filterQuality: FilterQuality.low,
+          gaplessPlayback: true,
+          cacheWidth: 1080,
+          excludeFromSemantics: true,
+          errorBuilder: (_, __, ___) => const ColoredBox(
+            color: Color(0xFFEDE7FF),
           ),
         ),
         // Blur kapalıysa filtre maliyetine girmemek için direkt geç.
-        if (blurSigma > 0)
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-            child: const SizedBox.expand(),
+        if (_clampedSigma > 0)
+          RepaintBoundary(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: _clampedSigma,
+                sigmaY: _clampedSigma,
+              ),
+              child: const SizedBox.expand(),
+            ),
           ),
         // Soluklaştırma perdesi (paleOpacity 0 ise yok).
         if (paleOpacity > 0)
-          Container(
+          ColoredBox(
             color: Colors.white.withValues(alpha: paleOpacity * 0.5),
           ),
       ],

@@ -11,8 +11,6 @@ void main() {
 
     expect(find.byType(LumoApp), findsOneWidget);
 
-    // Splash animasyonundaki gecikmeli adımların tamamlanmasına izin ver
-    // ki test sonunda sarkan Timer kalmasın.
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 800));
     await tester.pump(const Duration(seconds: 3));

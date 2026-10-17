@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
+import 'package:lumo/core/perf/image_precache.dart';
+import 'package:lumo/shared/widgets/lumo_tap.dart';
 
 class MascotCarousel extends StatelessWidget {
   final int selectedIndex;
@@ -45,11 +49,15 @@ class MascotCarousel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Görünen + komşu 2 pet görselini ısıtır (jank'sız kaydırma).
+        _NeighborPrecacher(selectedIndex: selectedIndex),
         // Selected mascot hero display
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 350),
           transitionBuilder: (child, anim) => FadeTransition(
-              opacity: anim, child: ScaleTransition(scale: anim, child: child)),
+            opacity: anim,
+            child: ScaleTransition(scale: anim, child: child),
+          ),
           child: SizedBox(
             key: ValueKey(selectedIndex),
             width: 180,
@@ -57,6 +65,9 @@ class MascotCarousel extends StatelessWidget {
             child: Image.asset(
               mascots[selectedIndex].path,
               fit: BoxFit.contain,
+              gaplessPlayback: true,
+              filterQuality: FilterQuality.low,
+              cacheWidth: 512,
             ),
           ),
         ),
@@ -98,7 +109,11 @@ class MascotCarousel extends StatelessWidget {
             itemCount: mascots.length,
             itemBuilder: (context, index) {
               final isSelected = index == selectedIndex;
-              return GestureDetector(
+              // Uzak küçük resimler decode edilmez: yalnızca görünen +
+              // komşu 2 görsel tutulur, gerisi yer tutucudur.
+              final isNear =
+                  (index - selectedIndex).abs() <= 2 || isSelected;
+              return LumoTap(
                 onTap: () => onMascotTap(index),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
@@ -107,8 +122,9 @@ class MascotCarousel extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color:
-                          isSelected ? AppColors.primary : Colors.transparent,
+                      color: isSelected
+                          ? AppColors.primary
+                          : Colors.transparent,
                       width: 2.5,
                     ),
                     color: isSelected
@@ -119,16 +135,23 @@ class MascotCarousel extends StatelessWidget {
                             BoxShadow(
                               color: AppColors.primary.withValues(alpha: 0.3),
                               blurRadius: 8,
-                            )
+                              spreadRadius: 0,
+                            ),
                           ]
-                        : [],
+                        : null,
                   ),
-                  child: Image.asset(
-                    mascots[index].path,
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.contain,
-                  ),
+                  child: isNear
+                      ? Image.asset(
+                          mascots[index].path,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.contain,
+                          gaplessPlayback: true,
+                          cacheWidth: 100,
+                          filterQuality: FilterQuality.low,
+                          excludeFromSemantics: true,
+                        )
+                      : const SizedBox(width: 50, height: 50),
                 ),
               );
             },
@@ -143,6 +166,39 @@ class MascotData {
   final String path;
   final String name;
   final String traits;
-  const MascotData(
-      {required this.path, required this.name, required this.traits});
+  const MascotData({
+    required this.path,
+    required this.name,
+    required this.traits,
+  });
+}
+
+/// Seçim değiştiğinde görünen + komşu 2 görseli ısıtan görünmez yardımcı.
+/// [MascotCarousel] stateless kaldığı için precache yaşam döngüsü buradadır.
+class _NeighborPrecacher extends StatefulWidget {
+  final int selectedIndex;
+
+  const _NeighborPrecacher({required this.selectedIndex});
+
+  @override
+  State<_NeighborPrecacher> createState() => _NeighborPrecacherState();
+}
+
+class _NeighborPrecacherState extends State<_NeighborPrecacher> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    unawaited(precachePetNeighbors(context, widget.selectedIndex));
+  }
+
+  @override
+  void didUpdateWidget(_NeighborPrecacher oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      unawaited(precachePetNeighbors(context, widget.selectedIndex));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

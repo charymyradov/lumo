@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/asset_paths.dart';
+import 'package:lumo/core/perf/image_precache.dart';
+import 'package:lumo/core/router/app_routes.dart';
 import 'package:lumo/features/breathing/presentation/pages/breathing_page.dart';
 import 'package:lumo/features/home/domain/entities/pet_action_state.dart';
 import 'package:lumo/features/home/presentation/pages/controllers/home_pet_care_mixin.dart';
@@ -30,6 +34,11 @@ class _HomePageState extends State<HomePage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     initPetState();
+    // Sekme görselleri önceden ısıt (gece/gündüz çayırı + ikonlar).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(precacheAppImages(context));
+    });
   }
 
   @override
@@ -53,16 +62,12 @@ class _HomePageState extends State<HomePage>
 
   // ── Sağ üst buton rotaları ───────────────────────────────────────
   void _openBreathing() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const BreathingPage()),
-    );
+    await pushAppPage(context, const BreathingPage());
     refreshWallet();
   }
 
   void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NotificationsPage()),
-    );
+    pushAppPage(context, const NotificationsPage());
   }
 
   /// Günlük görev önizlemesi — [DailyTasksPanel] alt sayfa olarak açılır.

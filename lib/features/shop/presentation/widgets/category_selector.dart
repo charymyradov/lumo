@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_text.dart';
 import 'package:lumo/core/constants/app_colors.dart';
+import 'package:lumo/shared/widgets/lumo_tap.dart';
 
 /// Presentation tab modeli — domain'deki `ShopCategory` enum'unu gölgelememesi
 /// için `ShopCategoryTab` adını kullanır (önceki `ShopCategory` ismi
@@ -37,8 +38,7 @@ class CategorySelector extends StatelessWidget {
         final cat = shopCategories[index];
         final selected = index == selectedIndex;
         return Expanded(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
+          child: LumoTap(
             onTap: () => onChanged(index),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -70,7 +70,8 @@ class CategorySelector extends StatelessWidget {
                         color: selected
                             ? const Color(0xFF7B5EA7).withValues(alpha: 0.35)
                             : Colors.black.withValues(alpha: 0.06),
-                        blurRadius: selected ? 16 : 10,
+                        blurRadius: selected ? 12 : 10,
+                        spreadRadius: 0,
                         offset: const Offset(0, 5),
                       ),
                     ],

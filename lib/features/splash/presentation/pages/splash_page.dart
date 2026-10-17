@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:lumo/core/perf/image_precache.dart';
 import 'package:lumo/features/splash/presentation/pages/splash_animation_mixin.dart';
 import 'package:lumo/features/splash/presentation/pages/widgets/splash_background.dart';
 import 'package:lumo/features/splash/presentation/pages/widgets/splash_logo.dart';
@@ -20,6 +23,11 @@ class _SplashPageState extends State<SplashPage>
     super.initState();
     initSplashAnimations();
     runSplashSequence(widget.onFinished);
+    // İlk kare sonrası tüm uygulama görsellerini ısıt (jank'sız geçiş).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(precacheAppImages(context));
+    });
   }
 
   @override

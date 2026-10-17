@@ -80,6 +80,11 @@ class _FallingLeavesState extends State<FallingLeaves>
     Color(0xFFE8B93E),
   ];
 
+  // Gece tonu bir kez precompute edilir (per-frame Color.lerp yok).
+  static final _nightShades = _dayShades
+      .map((c) => Color.lerp(c, Colors.black, 0.45)!)
+      .toList(growable: false);
+
   @override
   void initState() {
     super.initState();
@@ -146,7 +151,27 @@ class _LeavesPainter extends CustomPainter {
     required this.leaves,
     required this.motes,
     required this.isNight,
-  }) : super(repaint: animation);
+  }) : super(repaint: animation) {
+    // Yaprak renkleri bir kez precompute edilir: per-frame Color.lerp ve
+    // withValues alloc'u yok, paint() sadece tabloya bakar.
+    _dayFills = List<Color>.generate(
+      leaves.length,
+      (i) => _FallingLeavesState._dayShades[leaves[i].shade]
+          .withValues(alpha: leaves[i].alpha),
+      growable: false,
+    );
+    _nightFills = List<Color>.generate(
+      leaves.length,
+      (i) => _FallingLeavesState._nightShades[leaves[i].shade]
+          .withValues(alpha: leaves[i].alpha),
+      growable: false,
+    );
+    _veinColors = List<Color>.generate(
+      leaves.length,
+      (i) => Colors.white.withValues(alpha: leaves[i].alpha * 0.55),
+      growable: false,
+    );
+  }
 
   final Animation<double> animation;
   final List<_LeafSpec> leaves;
@@ -154,6 +179,20 @@ class _LeavesPainter extends CustomPainter {
   final bool isNight;
 
   static const _twoPi = math.pi * 2;
+  static const _moteNightBase = Color(0xFFFFE9A8);
+
+  // Kare başına alloc yapmamak için reuse edilen nesneler.
+  final Paint _motePaint = Paint()..style = PaintingStyle.fill;
+  final Paint _fill = Paint()..style = PaintingStyle.fill;
+  final Paint _vein = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0
+    ..strokeCap = StrokeCap.round;
+  final Path _leafPath = Path();
+
+  late final List<Color> _dayFills;
+  late final List<Color> _nightFills;
+  late final List<Color> _veinColors;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -163,24 +202,22 @@ class _LeavesPainter extends CustomPainter {
     final h = size.height;
 
     // ── Işık zerrecikleri (gece ateş böceği gibi parlar) ──
-    final motePaint = Paint()..style = PaintingStyle.fill;
+    // Tek Paint reuse edilir; sadece .color yazılır.
     for (final m in motes) {
       final yFrac = (((m.yOff - t * m.speed) % 1.0) + 1.0) % 1.0;
       final x = (m.x0 + math.sin(t * _twoPi + m.phase) * 0.02) * w;
       final twinkle = 0.55 + 0.45 * math.sin(t * _twoPi * 2 + m.phase);
-      motePaint.color = isNight
-          ? const Color(0xFFFFE9A8).withValues(alpha: m.alpha * twinkle)
+      _motePaint.color = isNight
+          ? _moteNightBase.withValues(alpha: m.alpha * twinkle)
           : Colors.white.withValues(alpha: m.alpha * twinkle * 0.8);
-      canvas.drawCircle(Offset(x, yFrac * h), m.size, motePaint);
+      canvas.drawCircle(Offset(x, yFrac * h), m.size, _motePaint);
     }
 
     // ── Yapraklar ──
-    final fill = Paint()..style = PaintingStyle.fill;
-    final vein = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0
-      ..strokeCap = StrokeCap.round;
-    for (final leaf in leaves) {
+    // Renkler precomputed tablodan; tek Path reset'lenip reuse edilir.
+    final fills = isNight ? _nightFills : _dayFills;
+    for (var i = 0; i < leaves.length; i++) {
+      final leaf = leaves[i];
       final fall = ((t * leaf.speed + leaf.yOff) % 1.15) - 0.075;
       if (fall < -0.06 || fall > 1.06) continue;
       final y = fall * h;
@@ -193,22 +230,21 @@ class _LeavesPainter extends CustomPainter {
           math.sin(t * leaf.rockFreq * _twoPi + leaf.phase) * leaf.rockAmp;
       final s = leaf.size;
 
-      var base = _FallingLeavesState._dayShades[leaf.shade];
-      if (isNight) base = Color.lerp(base, Colors.black, 0.45)!;
-      fill.color = base.withValues(alpha: leaf.alpha);
-      vein.color = Colors.white.withValues(alpha: leaf.alpha * 0.55);
+      _fill.color = fills[i];
+      _vein.color = _veinColors[i];
 
       canvas.save();
       canvas.translate(x, y);
       canvas.rotate(rot);
       // Sivri uçlu yaprak.
-      final path = Path()
+      _leafPath
+        ..reset()
         ..moveTo(0, -s)
         ..quadraticBezierTo(s * 0.85, -s * 0.2, 0, s)
         ..quadraticBezierTo(-s * 0.85, -s * 0.2, 0, -s)
         ..close();
-      canvas.drawPath(path, fill);
-      canvas.drawLine(Offset(0, -s * 0.65), Offset(0, s * 0.65), vein);
+      canvas.drawPath(_leafPath, _fill);
+      canvas.drawLine(Offset(0, -s * 0.65), Offset(0, s * 0.65), _vein);
       canvas.restore();
     }
   }

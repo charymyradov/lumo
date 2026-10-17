@@ -38,13 +38,19 @@ class _BlurredImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Image.asset(
-          AssetPaths.splash2Jpg,
-          fit: BoxFit.cover,
-          alignment: Alignment.center,
+    return RepaintBoundary(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Image.asset(
+            AssetPaths.splash2Jpg,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.low,
+            gaplessPlayback: true,
+            cacheWidth: 1080,
+            excludeFromSemantics: true,
+          ),
         ),
       ),
     );

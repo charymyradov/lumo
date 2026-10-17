@@ -14,7 +14,14 @@ class PlaceholderPage extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset(AssetPaths.splash2Jpg, fit: BoxFit.cover),
+        Image.asset(
+          AssetPaths.splash2Jpg,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.low,
+          gaplessPlayback: true,
+          cacheWidth: 1080,
+          excludeFromSemantics: true,
+        ),
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(

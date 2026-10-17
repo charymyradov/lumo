@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 class OrbEnergyPainter extends CustomPainter {
   final double energy; // 0..1
 
-  OrbEnergyPainter({required this.energy});
+  const OrbEnergyPainter({required this.energy});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -92,5 +92,6 @@ class OrbEnergyPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(OrbEnergyPainter old) => old.energy != energy;
+  bool shouldRepaint(OrbEnergyPainter old) =>
+      (old.energy - energy).abs() > 0.001;
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_text.dart';
+import 'package:lumo/shared/widgets/lumo_tap.dart';
 
 /// Görseldeki desen sırası: [4-7-8] [Kutu Nefes] [Derin Nefes]
 /// Tam genişliğe yayılır, seçili olan daha opak mor.
@@ -23,7 +24,7 @@ class PatternSelector extends StatelessWidget {
         return Expanded(
           child: Padding(
             padding: EdgeInsets.only(right: i == labels.length - 1 ? 0 : 10),
-            child: GestureDetector(
+            child: LumoTap(
               onTap: () => onChanged(i),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),

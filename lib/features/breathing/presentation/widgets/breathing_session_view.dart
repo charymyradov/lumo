@@ -36,7 +36,14 @@ class BreathingSessionView extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(AssetPaths.nefesBg, fit: BoxFit.cover),
+          Image.asset(
+            AssetPaths.nefesBg,
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.low,
+            gaplessPlayback: true,
+            cacheWidth: 1080,
+            excludeFromSemantics: true,
+          ),
           // Hafif karartma — yazılar okunsun, kedi ve yıldızlar görünsün
           const DecoratedBox(
             decoration: BoxDecoration(

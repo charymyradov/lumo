@@ -64,10 +64,33 @@ class _RivePetStageState extends State<RivePetStage> {
   RiveWidgetController? _riveController;
   PetActionState? _lastFired;
 
+  // Artboard bir kez yüklenip cache'lenir: her rebuild'de yeni FileLoader
+  // kurulursa asset yeniden çözülür (RiveWidgetBuilder dosya eşitliğine
+  // bakarak yeniden yükler). Getter ilk kullanımda tek örnek oluşturur.
+  FileLoader? _fileLoaderCache;
+  FileLoader get _fileLoader => _fileLoaderCache ??= FileLoader.fromAsset(
+        RivePetStage.assetPath,
+        riveFactory: Factory.rive,
+      );
+
   @override
   void initState() {
     super.initState();
     _checkAsset();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncTickerMode();
+  }
+
+  /// Sekme gizlenince (TickerMode kapalı) Rive ilerlemeyi duraklatır.
+  void _syncTickerMode() {
+    final enabled = TickerMode.valuesOf(context).enabled;
+    if (_riveController != null && _riveController!.active != enabled) {
+      _riveController!.active = enabled;
+    }
   }
 
   Future<void> _checkAsset() async {
@@ -128,9 +151,11 @@ class _RivePetStageState extends State<RivePetStage> {
           const StateMachineNamed(RivePetStage.stateMachineName),
     );
     _riveController = controller;
-    // İlk karede mevcut aksiyonu ateşle.
+    // İlk karede mevcut aksiyonu ateşle + TickerMode durumunu eşitle.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _fireFor(widget.actionState);
+      if (!mounted) return;
+      _fireFor(widget.actionState);
+      _syncTickerMode();
     });
     return controller;
   }
@@ -150,6 +175,9 @@ class _RivePetStageState extends State<RivePetStage> {
   void dispose() {
     _riveController?.dispose();
     _riveController = null;
+    // Dosya parent'a ait (RiveWidgetBuilder dispose etmez) — cache'i kapat.
+    _fileLoaderCache?.dispose();
+    _fileLoaderCache = null;
     super.dispose();
   }
 
@@ -170,10 +198,7 @@ class _RivePetStageState extends State<RivePetStage> {
         children: [
           RepaintBoundary(
             child: RiveWidgetBuilder(
-              fileLoader: FileLoader.fromAsset(
-                RivePetStage.assetPath,
-                riveFactory: Factory.rive,
-              ),
+              fileLoader: _fileLoader,
               artboardSelector: const ArtboardNamed(RivePetStage.artboardName),
               stateMachineSelector:
                   const StateMachineNamed(RivePetStage.stateMachineName),

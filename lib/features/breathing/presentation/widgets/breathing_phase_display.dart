@@ -34,7 +34,19 @@ class BreathingPhaseDisplay extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 200),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeOut,
+          // Sadece opaklık geçişi: scale/clip yok, layout sabit Stack.
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          layoutBuilder: (currentChild, previousChildren) => Stack(
+            alignment: Alignment.center,
+            children: [
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          ),
           child: Text(
             '$secondsLeft sec',
             key: ValueKey<int>(secondsLeft),

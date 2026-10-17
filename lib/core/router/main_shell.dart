@@ -14,9 +14,10 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _currentIndex = 0; // Open on Home (Yaşam)
+  late final ValueNotifier<int> _index = ValueNotifier<int>(0);
 
-  static const _pages = [
+  // Open on Home (Yaşam). Const sayfalar lazy tutulur.
+  late final List<Widget> _pages = const [
     HomePage(),
     TasksPage(),
     JournalPage(),
@@ -24,32 +25,50 @@ class _MainShellState extends State<MainShell> {
     ProfilePage(),
   ];
 
+  @override
+  void dispose() {
+    _index.dispose();
+    super.dispose();
+  }
+
   void _onTap(int index) {
-    if (index == _currentIndex) return;
-    setState(() => _currentIndex = index);
+    if (index == _index.value) return;
+    _index.value = index;
   }
 
   @override
   Widget build(BuildContext context) {
-    final appTickerEnabled = TickerMode.valuesOf(context).enabled;
-
+    // Scaffold bir kez kurulur; sekme değişiminde yalnızca
+    // aşağıdaki iki ValueListenableBuilder rebuild olur.
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          for (var i = 0; i < _pages.length; i++)
-            RepaintBoundary(
-              child: TickerMode(
-                enabled: appTickerEnabled && i == _currentIndex,
-                child: _pages[i],
-              ),
-            ),
-        ],
+      body: ValueListenableBuilder<int>(
+        valueListenable: _index,
+        builder: (context, index, _) {
+          final appTickerEnabled = TickerMode.valuesOf(context).enabled;
+          return IndexedStack(
+            index: index,
+            children: [
+              for (var i = 0; i < _pages.length; i++)
+                RepaintBoundary(
+                  child: Offstage(
+                    offstage: i != index,
+                    child: TickerMode(
+                      enabled: appTickerEnabled && i == index,
+                      child: _pages[i],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
-      bottomNavigationBar: LumoBottomNav(
-        currentIndex: _currentIndex,
-        onTap: _onTap,
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: _index,
+        builder: (context, index, _) => LumoBottomNav(
+          currentIndex: index,
+          onTap: _onTap,
+        ),
       ),
     );
   }

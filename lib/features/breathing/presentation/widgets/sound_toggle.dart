@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lumo/core/constants/app_text.dart';
+import 'package:lumo/shared/widgets/lumo_tap.dart';
 
 /// Görseldeki ortalanmış ses hapı: [ Ses  Orman  ▾ ]
 class SoundToggle extends StatelessWidget {
@@ -10,7 +11,7 @@ class SoundToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return LumoTap(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
